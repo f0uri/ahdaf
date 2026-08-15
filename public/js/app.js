@@ -146,7 +146,7 @@
 
   const state = {
     lang: localStorage.getItem("ahdaf-lang") || "ar",
-    theme: localStorage.getItem("ahdaf-theme") || "light",
+    theme: localStorage.getItem("ahdaf-theme") || "dark",
     tab: "matches",
     date: null,
     filter: "all",
@@ -175,8 +175,10 @@
     document.documentElement.lang = state.lang;
     document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr";
     document.documentElement.dataset.theme = state.theme;
-    const themeColor = state.theme === "dark" ? "#0E0D0C" : "#F4F1EB";
+    const themeColor = state.theme === "dark" ? "#000000" : "#F2F2F7";
     document.querySelector('meta[name="theme-color"]').setAttribute("content", themeColor);
+    const bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (bar) bar.setAttribute("content", state.theme === "dark" ? "black-translucent" : "default");
     $("#searchInput").placeholder = t("search");
     const labels = { matches: t("matches"), live: t("live"), leagues: t("leagues"), favorites: t("favorites") };
     $$(".tab").forEach((b) => {
@@ -429,6 +431,7 @@
     $("#pageTitle").textContent = title;
     $("#eyebrow").textContent = eye || t("app");
     const deep = state.stack.length > 0;
+    $("#eyebrow").classList.toggle("hidden", !deep);
     $("#backBtn").classList.toggle("hidden", !deep);
     $("#tabbar").style.display = deep ? "none" : "";
     $("#dates").classList.toggle("hidden", deep || state.tab !== "matches");
@@ -457,7 +460,7 @@
         const label =
           off === 0 ? t("today") : off === -1 ? t("yesterday") : off === 1 ? t("tomorrow") : t("weekdays")[date.getDay()];
         return `<button class="day ${ymd === state.date ? "on" : ""}" data-ymd="${ymd}">
-          <b>${date.getDate()}</b><span>${label}</span>
+          <span>${label}</span><b>${date.getDate()}</b>
         </button>`;
       })
       .join("");
@@ -549,6 +552,7 @@
               <b>${esc(name)}</b>
               <span>${esc(s.Cnm || "")}${s.Snm && s.Snm !== s.CompN ? " · " + esc(s.Snm) : ""}</span>
             </button>
+            <span class="chev">‹</span>
             <button class="star ${isFav(key) ? "on" : ""}" data-key="${esc(key)}" aria-label="fav">★</button>
           </div>
           ${s.Events.map((ev) => renderMatch(ev, s)).join("")}
