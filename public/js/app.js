@@ -76,6 +76,15 @@
       availableIn: "متاح في",
       watching: "تتابع المباراة",
       lastEvent: "آخر الأحداث",
+      officialApps: "شاهد من المصدر الرسمي",
+      officialAppsHint: "يُفتح داخل التطبيق — سجّل دخولك في المنصة إن لزم",
+      inApp: "داخل التطبيق",
+      embedBlocked: "المنصة تحمي بثها",
+      embedBlockedHint: "الموقع الرسمي لا يسمح بوضع مشغّله داخل تطبيقات أخرى. يمكنك المتابعة من حسابك على منصتهم.",
+      todSub: "منصة البث الرسمية لـ beIN",
+      beinSub: "القنوات والتغطية الكاملة",
+      snrtSub: "التلفزيون الوطني المغربي",
+      fifaSub: "محتوى فيفا الرسمي",
       weekdays: ["أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"],
     },
     en: {
@@ -151,6 +160,15 @@
       availableIn: "Available in",
       watching: "Watching",
       lastEvent: "Latest events",
+      officialApps: "Watch on official sources",
+      officialAppsHint: "Opens inside the app — sign in on the platform if needed",
+      inApp: "In-app",
+      embedBlocked: "This platform protects its player",
+      embedBlockedHint: "The official site does not allow its player inside other apps. Use your account on their platform.",
+      todSub: "Official beIN streaming platform",
+      beinSub: "Channels and full coverage",
+      snrtSub: "Moroccan national TV",
+      fifaSub: "Official FIFA content",
       weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     },
   };
@@ -537,13 +555,10 @@
       else if (+s2 > +s1) { w2 = "win"; w1 = "lose"; }
     }
     return `<article class="match" data-eid="${esc(ev.Eid)}" data-sid="${esc(stage.Sid || "")}" data-ccd="${esc(stage.Ccd || "")}" data-scd="${esc(stage.Scd || "")}" data-cid="${esc(stage.CompId || stage.Sid || "")}">
-      <div class="teams">
-        <div class="team ${w1}">${crest(t1)}<span class="nm">${esc(t1.name)}</span>${showScore ? `<span class="sc">${esc(s1)}</span>` : ""}</div>
-        <div class="team ${w2}">${crest(t2)}<span class="nm">${esc(t2.name)}</span>${showScore ? `<span class="sc">${esc(s2)}</span>` : ""}</div>
-      </div>
-      <div class="status ${st.kind}">
-        ${st.kind === "live" ? `<i class="pulse"></i><span class="live-min">${esc(st.label)}</span><span class="watch-mini">${esc(t("watch"))}</span>` : `<span>${esc(st.label)}</span>`}
-      </div>
+      <div class="mtime ${st.kind}">${esc(st.label)}</div>
+      <div class="mside home ${w1}"><span class="nm">${esc(t1.name)}</span>${crest(t1)}</div>
+      <div class="mscore">${showScore ? `${esc(s1)}<i>-</i>${esc(s2)}` : "–"}</div>
+      <div class="mside away ${w2}">${crest(t2)}<span class="nm">${esc(t2.name)}</span></div>
     </article>`;
   }
 
@@ -736,6 +751,38 @@
     return (codes || []).map((c) => map[c] || c).join(" · ");
   }
 
+  function officialPlatforms(sb) {
+    const blob = `${sb?.Stg?.Cnm || ""} ${sb?.Stg?.Ccd || ""} ${sb?.T1?.[0]?.Nm || ""} ${sb?.T2?.[0]?.Nm || ""}`.toLowerCase();
+    const morocco = /morocco|maroc|wydad|raja|botola/.test(blob);
+    const international = /fifa|world|africa|caf|uefa|champions/.test(blob);
+    const list = [
+      { id: "tod", title: "TOD", sub: t("todSub"), url: "https://www.tod.tv/ar", cls: "tod" },
+      { id: "bein", title: "beIN SPORTS", sub: t("beinSub"), url: "https://www.beinsports.com/ar-mena", cls: "bein" },
+      { id: "snrt", title: "الرياضية", sub: t("snrtSub"), url: "https://www.snrt.ma/ar", cls: "snrt" },
+      { id: "fifa", title: "FIFA+", sub: t("fifaSub"), url: "https://www.fifa.com/fifaplus/ar", cls: "fifa" },
+    ];
+    if (morocco) return [list[2], list[0], list[1], list[3]];
+    if (international) return [list[3], list[0], list[1], list[2]];
+    return list;
+  }
+
+  function renderOfficialApps(sb) {
+    const apps = officialPlatforms(sb);
+    return `
+      <div class="section-t">${t("officialApps")}</div>
+      <p class="player-hint" style="margin-top:0">${esc(t("officialAppsHint"))}</p>
+      <div class="official-grid">
+        ${apps
+          .map(
+            (a) => `<button type="button" class="official-card ${a.cls}" data-open-official="${esc(a.url)}" data-open-name="${esc(a.title)}">
+              <b>${esc(a.title)}</b>
+              <span>${esc(a.sub)}</span>
+            </button>`
+          )
+          .join("")}
+      </div>`;
+  }
+
   function officialWatchUrl(sb) {
     const ccd = sb?.Stg?.Ccd;
     const scd = sb?.Stg?.Scd;
@@ -827,20 +874,16 @@
       : `<div class="empty"><p>${t("noEvents")}</p></div>`;
 
     return `
-      <div class="theater">
-        <div class="theater-glow"></div>
-        <div class="theater-top">
-          ${st.kind === "live" ? `<span class="live-pill"><i></i>${esc(t("live"))} ${esc(st.label)}</span>` : `<span class="live-pill dim">${esc(st.label)}</span>`}
-        </div>
+      ${renderOfficialApps(sb)}
+      <div class="theater compact">
         <div class="theater-score">
           <div class="th-team">${crest(t1, true)}<b>${esc(t1.name)}</b></div>
-          <div class="th-nums">${show ? `${esc(s1)}<span>–</span>${esc(s2)}` : formatKick(sb.Esd)}</div>
+          <div class="th-nums" id="watchNums">${show ? `${esc(s1)}<span>–</span>${esc(s2)}` : formatKick(sb.Esd)}</div>
           <div class="th-team">${crest(t2, true)}<b>${esc(t2.name)}</b></div>
         </div>
-        <div class="theater-caption">${esc(t("watching"))}</div>
       </div>
       <div class="section-t">${t("lastEvent")}</div>
-      <div class="sheet-card ticker">${events}</div>
+      <div class="sheet-card ticker" id="watchTicker">${events}</div>
       ${renderBroadcast(sb)}
     `;
   }
@@ -1137,8 +1180,53 @@
     else if (page.type === "settings") renderSettings();
   }
 
+  function closeViewer() {
+    const v = $("#viewer");
+    const frame = $("#viewerFrame");
+    if (frame) frame.src = "about:blank";
+    if (v) {
+      v.classList.add("hidden");
+      v.setAttribute("aria-hidden", "true");
+    }
+    $("#viewerBlock")?.classList.add("hidden");
+  }
+
+  async function openOfficialInApp(url, name) {
+    const v = $("#viewer");
+    const frame = $("#viewerFrame");
+    const block = $("#viewerBlock");
+    if (!v || !frame) return;
+    $("#viewerName").textContent = name || t("officialApps");
+    $("#viewerHint").textContent = t("inApp");
+    $("#viewerBlockTitle").textContent = t("embedBlocked");
+    $("#viewerBlockText").textContent = t("embedBlockedHint");
+    block?.classList.add("hidden");
+    v.classList.remove("hidden");
+    v.setAttribute("aria-hidden", "false");
+    frame.src = url;
+    try {
+      const r = await fetch("/api/frame-check?url=" + encodeURIComponent(url));
+      const info = await r.json();
+      if (info && info.embed === false) {
+        block?.classList.remove("hidden");
+      }
+    } catch {
+      setTimeout(() => {
+        try {
+          if (!frame.contentWindow) block?.classList.remove("hidden");
+        } catch {
+          block?.classList.remove("hidden");
+        }
+      }, 1800);
+    }
+  }
+
   function bind() {
-    $("#backBtn").addEventListener("click", pop);
+    $("#backBtn").addEventListener("click", () => {
+      if (!$("#viewer")?.classList.contains("hidden")) return closeViewer();
+      pop();
+    });
+    $("#viewerClose")?.addEventListener("click", closeViewer);
     $("#searchBtn").addEventListener("click", () => {
       state.searchOpen = !state.searchOpen;
       $("#searchWrap").classList.toggle("hidden", !state.searchOpen);
@@ -1176,6 +1264,12 @@
       else renderPage();
     });
     $("#view").addEventListener("click", (e) => {
+      const off = e.target.closest("[data-open-official]");
+      if (off) {
+        e.preventDefault();
+        openOfficialInApp(off.dataset.openOfficial, off.dataset.openName);
+        return;
+      }
       if (e.target.closest("#retry")) return loadDate(state.date);
       if (e.target.closest("#themeToggle")) {
         state.theme = state.theme === "dark" ? "light" : "dark";
@@ -1274,9 +1368,9 @@
             i: data?.incidents,
           });
           if (fp === cur.fp) return;
-          const y = $("#view")?.scrollTop || 0;
           cur.data = data;
           cur.fp = fp;
+          const y = $("#view")?.scrollTop || 0;
           renderMatchPage(cur);
           if ($("#view")) $("#view").scrollTop = y;
         } catch {}

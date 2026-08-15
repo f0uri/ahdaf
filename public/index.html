@@ -57,6 +57,25 @@
 
       <main class="view" id="view"></main>
 
+      <div id="viewer" class="viewer hidden" aria-hidden="true">
+        <div class="viewer-bar">
+          <button class="icon-btn" id="viewerClose" aria-label="إغلاق">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          </button>
+          <div class="viewer-title">
+            <b id="viewerName">TOD</b>
+            <span id="viewerHint">داخل التطبيق</span>
+          </div>
+        </div>
+        <div class="viewer-stage">
+          <iframe id="viewerFrame" title="مشاهدة رسمية" allow="encrypted-media; fullscreen; autoplay; picture-in-picture" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <div id="viewerBlock" class="viewer-block hidden">
+            <h3 id="viewerBlockTitle">المنصة تحمي بثها</h3>
+            <p id="viewerBlockText">الموقع الرسمي لا يسمح بعرض مشغّله داخل تطبيقات أخرى. سجّل دخولك من موقعه عند توفر الحساب.</p>
+          </div>
+        </div>
+      </div>
+
       <nav class="tabbar" id="tabbar">
         <button data-tab="matches" class="tab on">
           <svg viewBox="0 0 24 24"><rect x="4.2" y="5.2" width="15.6" height="14.4" rx="2.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 3.6v3.4M16 3.6v3.4M4.2 10h15.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>

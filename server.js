@@ -202,6 +202,34 @@ app.get("/api/catalog", (_req, res) => {
   res.json({ items: [...catalog.values()] });
 });
 
+const FRAME_HOSTS = new Set([
+  "www.tod.tv",
+  "tod.tv",
+  "www.beinsports.com",
+  "connect.beinsports.com",
+  "www.snrt.ma",
+  "snrt.ma",
+  "www.fifa.com",
+  "fifa.com",
+]);
+
+app.get("/api/frame-check", async (req, res) => {
+  try {
+    const raw = String(req.query.url || "");
+    const u = new URL(raw);
+    if (u.protocol !== "https:" || !FRAME_HOSTS.has(u.hostname)) {
+      return res.status(400).json({ ok: false, embed: false });
+    }
+    const r = await fetch(u.toString(), { method: "HEAD", redirect: "follow", headers: { "User-Agent": UA } });
+    const xfo = (r.headers.get("x-frame-options") || "").toLowerCase();
+    const csp = (r.headers.get("content-security-policy") || "").toLowerCase();
+    const embed = !xfo.includes("deny") && !xfo.includes("sameorigin") && !csp.includes("frame-ancestors");
+    res.json({ ok: true, embed, status: r.status });
+  } catch {
+    res.json({ ok: false, embed: false });
+  }
+});
+
 app.get("/img", async (req, res) => {
   try {
     const p = String(req.query.p || "");
