@@ -571,11 +571,12 @@ html[data-theme="dark"] .crest { box-shadow: 0 0 0 0.5px rgba(255,255,255,0.08);
   background: transparent;
   color: var(--label);
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 7px 4px;
+  padding: 7px 3px;
   border-radius: 7px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .seg button.on {
   background: var(--elevated);

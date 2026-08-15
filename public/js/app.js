@@ -136,6 +136,21 @@
       error: "Could not load data",
       follow: "Follow",
       following: "Following",
+      watch: "Watch",
+      watchLive: "Watch live",
+      theater: "Watch mode",
+      channels: "Where to watch",
+      officialStream: "Official stream",
+      tvChannel: "TV channels",
+      highlights: "Official highlights",
+      noBroadcast: "No official video stream for this match",
+      noBroadcastHint: "Follow it here in real time: score, minute, and every key event.",
+      legalNote: "Official sources only",
+      openOfficial: "Open official stream",
+      openHighlight: "Watch highlights",
+      availableIn: "Available in",
+      watching: "Watching",
+      lastEvent: "Latest events",
       weekdays: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
     },
   };
@@ -738,7 +753,7 @@
 
     if (streams.length) {
       html += `<div class="section-t">${t("officialStream")}</div><div class="list-wrap">`;
-      html += streams
+      html += streams.slice(0, 1)
         .map((s) => {
           const where = countryList(s.allowedCountries);
           return `<a class="list-row ext-link" href="${esc(official)}" target="_blank" rel="noopener">
@@ -1244,13 +1259,34 @@
     renderChips();
     renderPage();
     requestAnimationFrame(() => $("#splash").classList.add("hide"));
-    state.liveTimer = setInterval(() => {
+    state.liveTimer = setInterval(async () => {
       if (document.hidden) return;
+      const page = state.stack[state.stack.length - 1];
+      if (page?.type === "match" && page.eid) {
+        try {
+          const data = await api("/api/match/" + page.eid);
+          const cur = state.stack[state.stack.length - 1];
+          if (cur?.eid !== page.eid) return;
+          const fp = JSON.stringify({
+            e: data?.scoreboard?.Eps,
+            a: data?.scoreboard?.Tr1,
+            b: data?.scoreboard?.Tr2,
+            i: data?.incidents,
+          });
+          if (fp === cur.fp) return;
+          const y = $("#view")?.scrollTop || 0;
+          cur.data = data;
+          cur.fp = fp;
+          renderMatchPage(cur);
+          if ($("#view")) $("#view").scrollTop = y;
+        } catch {}
+        return;
+      }
       if (state.tab === "live" && !state.stack.length) loadLive({ silent: true });
       else if (state.tab === "matches" && !state.stack.length && state.date === state.today) {
         loadDate(state.date, { silent: true });
       }
-    }, 20000);
+    }, 8000);
   }
 
   if ("serviceWorker" in navigator && !isNative()) {
