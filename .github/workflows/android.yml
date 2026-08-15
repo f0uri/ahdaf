@@ -1,0 +1,71 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Add Capacitor Android
+        run: |
+          npx cap add android
+          npx cap sync android
+
+      - name: Configure Android app
+        run: |
+          python3 << 'PY'
+          from pathlib import Path
+          gradle = Path("android/app/build.gradle")
+          text = gradle.read_text()
+          text = text.replace("applicationId \"app.ahdaf.scores\"", "applicationId \"app.ahdaf.scores\"")
+          if "namespace" not in text and "namespace " not in text:
+              pass
+          gradle.write_text(text)
+          strings = Path("android/app/src/main/res/values/strings.xml")
+          if strings.exists():
+              s = strings.read_text()
+              s = s.replace(">Ahdaf<", ">أهداف<").replace(">ahdaf<", ">أهداف<")
+              strings.write_text(s)
+          PY
+          # copy icons if generated
+          if [ -f public/icons/icon-192.png ]; then
+            mkdir -p android/app/src/main/res/mipmap-xxxhdpi
+            cp public/icons/icon-192.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+            cp public/icons/icon-192.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png || true
+          fi
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ahdaf-debug
+          path: android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error

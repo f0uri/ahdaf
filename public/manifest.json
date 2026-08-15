@@ -1,0 +1,17 @@
+{
+  "name": "أهداف",
+  "short_name": "أهداف",
+  "description": "نتائج ومواعيد المباريات في جميع الدوريات والكؤوس",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "dir": "rtl",
+  "lang": "ar",
+  "background_color": "#F4F1EB",
+  "theme_color": "#F4F1EB",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

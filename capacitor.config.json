@@ -1,0 +1,20 @@
+{
+  "appId": "app.ahdaf.scores",
+  "appName": "أهداف",
+  "webDir": "public",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    },
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#F4F1EB"
+  }
+}
