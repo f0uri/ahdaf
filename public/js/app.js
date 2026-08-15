@@ -61,6 +61,21 @@
       error: "تعذّر جلب البيانات",
       follow: "متابعة",
       following: "متابَع",
+      watch: "البث",
+      watchLive: "مشاهدة مباشرة",
+      theater: "وضع المشاهدة",
+      channels: "أين تشاهد",
+      officialStream: "بث رسمي",
+      tvChannel: "قنوات التلفزيون",
+      highlights: "ملخصات رسمية",
+      noBroadcast: "لا يتوفر بث فيديو رسمي لهذه المباراة",
+      noBroadcastHint: "يمكنك متابعة اللقاء هنا لحظة بلحظة: النتيجة، الدقيقة، والأهداف.",
+      legalNote: "نعرض المصادر الرسمية فقط",
+      openOfficial: "فتح البث الرسمي",
+      openHighlight: "مشاهدة الملخص",
+      availableIn: "متاح في",
+      watching: "تتابع المباراة",
+      lastEvent: "آخر الأحداث",
       weekdays: ["أحد", "إثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"],
     },
     en: {
@@ -512,7 +527,7 @@
         <div class="team ${w2}">${crest(t2)}<span class="nm">${esc(t2.name)}</span>${showScore ? `<span class="sc">${esc(s2)}</span>` : ""}</div>
       </div>
       <div class="status ${st.kind}">
-        ${st.kind === "live" ? `<i class="pulse"></i><span class="live-min">${esc(st.label)}</span>` : `<span>${esc(st.label)}</span>`}
+        ${st.kind === "live" ? `<i class="pulse"></i><span class="live-min">${esc(st.label)}</span><span class="watch-mini">${esc(t("watch"))}</span>` : `<span>${esc(st.label)}</span>`}
       </div>
     </article>`;
   }
@@ -686,6 +701,135 @@
     return { lab: "", cls: "" };
   }
 
+  const CC_NAME = {
+    ar: { GB: "بريطانيا", IE: "إيرلندا", MA: "المغرب", FR: "فرنسا", ES: "إسبانيا", DE: "ألمانيا", IT: "إيطاليا", US: "أمريكا", SA: "السعودية", AE: "الإمارات", QA: "قطر", EG: "مصر", MX: "المكسيك", BR: "البرازيل", JP: "اليابان", AU: "أستراليا", CA: "كندا", NL: "هولندا", PT: "البرتغال", TR: "تركيا", IN: "الهند", NG: "نيجيريا", ZA: "جنوب أفريقيا" },
+    en: { GB: "UK", IE: "Ireland", MA: "Morocco", FR: "France", ES: "Spain", DE: "Germany", IT: "Italy", US: "USA", SA: "Saudi Arabia", AE: "UAE", QA: "Qatar", EG: "Egypt", MX: "Mexico", BR: "Brazil", JP: "Japan", AU: "Australia", CA: "Canada", NL: "Netherlands", PT: "Portugal", TR: "Turkey", IN: "India", NG: "Nigeria", ZA: "South Africa" },
+  };
+
+  function parseMedia(media) {
+    const items = [];
+    if (!media || typeof media !== "object") return items;
+    for (const arr of Object.values(media)) {
+      if (!Array.isArray(arr)) continue;
+      for (const m of arr) items.push(m);
+    }
+    return items;
+  }
+
+  function countryList(codes) {
+    const map = CC_NAME[state.lang] || CC_NAME.ar;
+    return (codes || []).map((c) => map[c] || c).join(" · ");
+  }
+
+  function officialWatchUrl(sb) {
+    const ccd = sb?.Stg?.Ccd;
+    const scd = sb?.Stg?.Scd;
+    if (!ccd || !scd) return "https://www.livescore.com/";
+    return `https://www.livescore.com/en/football/${encodeURIComponent(ccd)}/${encodeURIComponent(scd)}/`;
+  }
+
+  function renderBroadcast(sb) {
+    const media = parseMedia(sb.Media);
+    const tvs = media.filter((m) => m.type === "TV_CHANNEL" && m.eventId);
+    const streams = media.filter((m) => m.type === "LIVE_STREAMING");
+    const highs = media.filter((m) => /highlight/i.test(m.type || "") && m.storyUrl);
+    const official = officialWatchUrl(sb);
+    let html = `<div class="watch-legal">${esc(t("legalNote"))}</div>`;
+
+    if (streams.length) {
+      html += `<div class="section-t">${t("officialStream")}</div><div class="list-wrap">`;
+      html += streams
+        .map((s) => {
+          const where = countryList(s.allowedCountries);
+          return `<a class="list-row ext-link" href="${esc(official)}" target="_blank" rel="noopener">
+            <span class="bcast-ic stream">▶</span>
+            <span style="flex:1;text-align:start">
+              <b style="display:block;font-weight:600">${esc(t("openOfficial"))}</b>
+              <span style="color:var(--secondary);font-size:12px">${where ? t("availableIn") + " " + esc(where) : esc(t("officialStream"))}</span>
+            </span>
+            <span class="go">‹</span>
+          </a>`;
+        })
+        .join("");
+      html += "</div>";
+    }
+
+    if (tvs.length) {
+      html += `<div class="section-t">${t("tvChannel")}</div><div class="list-wrap">`;
+      html += tvs
+        .map((ch) => {
+          const where = countryList(ch.allowedCountries);
+          return `<div class="list-row">
+            <span class="bcast-ic tv">tv</span>
+            <span style="flex:1;text-align:start">
+              <b style="display:block;font-weight:600">${esc(ch.eventId)}</b>
+              ${where ? `<span style="color:var(--secondary);font-size:12px">${esc(where)}</span>` : ""}
+            </span>
+          </div>`;
+        })
+        .join("");
+      html += "</div>";
+    }
+
+    if (highs.length) {
+      html += `<div class="section-t">${t("highlights")}</div><div class="list-wrap">`;
+      html += highs
+        .map(
+          (h) => `<a class="list-row ext-link" href="${esc(h.storyUrl)}" target="_blank" rel="noopener">
+            <span class="bcast-ic high">★</span>
+            <span style="flex:1;text-align:start;font-weight:600">${esc(t("openHighlight"))}</span>
+            <span class="go">‹</span>
+          </a>`
+        )
+        .join("");
+      html += "</div>";
+    }
+
+    if (!streams.length && !tvs.length && !highs.length) {
+      html += `<div class="empty watch-empty">
+        <h3>${esc(t("noBroadcast"))}</h3>
+        <p>${esc(t("noBroadcastHint"))}</p>
+      </div>`;
+    }
+    return html;
+  }
+
+  function renderWatchBody(page, sb, st, t1, t2, s1, s2, incs) {
+    const show = st.kind === "live" || st.kind === "ft";
+    const last = [...incs].reverse().slice(0, 6);
+    const events = last.length
+      ? last
+          .map((e) => {
+            const L = incidentLabel(e.it, e.nm);
+            return `<div class="ticker-item ${L.cls}">
+              <span class="min">${e.min ?? ""}′</span>
+              ${L.lab ? `<span class="pill ${L.cls}">${esc(L.lab)}</span>` : ""}
+              <span>${esc(e.player || "")}</span>
+              ${e.sc ? `<b>${e.sc[0]}-${e.sc[1]}</b>` : ""}
+            </div>`;
+          })
+          .join("")
+      : `<div class="empty"><p>${t("noEvents")}</p></div>`;
+
+    return `
+      <div class="theater">
+        <div class="theater-glow"></div>
+        <div class="theater-top">
+          ${st.kind === "live" ? `<span class="live-pill"><i></i>${esc(t("live"))} ${esc(st.label)}</span>` : `<span class="live-pill dim">${esc(st.label)}</span>`}
+        </div>
+        <div class="theater-score">
+          <div class="th-team">${crest(t1, true)}<b>${esc(t1.name)}</b></div>
+          <div class="th-nums">${show ? `${esc(s1)}<span>–</span>${esc(s2)}` : formatKick(sb.Esd)}</div>
+          <div class="th-team">${crest(t2, true)}<b>${esc(t2.name)}</b></div>
+        </div>
+        <div class="theater-caption">${esc(t("watching"))}</div>
+      </div>
+      <div class="section-t">${t("lastEvent")}</div>
+      <div class="sheet-card ticker">${events}</div>
+      ${renderBroadcast(sb)}
+    `;
+  }
+
   function flattenIncs(incidents) {
     const out = [];
     const buckets = incidents?.Incs || {};
@@ -720,7 +864,8 @@
     const city = info.Vcy || sb.Venue?.Vcy;
     const ref = (info.Refs && info.Refs[0]?.Nm) || "";
     const comp = sb.Stg?.Snm || page.meta?.name || "";
-    const tab = page.tab || "events";
+    const tab = page.tab || (st.kind === "live" ? "watch" : "events");
+    page.tab = tab;
     setTitle(comp || t("matches"), st.kind === "live" ? t("live") : t("app"));
 
     const incs = flattenIncs(page.data?.incidents);
@@ -792,7 +937,9 @@
     }
 
     const body =
-      tab === "events"
+      tab === "watch"
+        ? renderWatchBody(page, sb, st, t1, t2, s1, s2, incs)
+        : tab === "events"
         ? eventsHtml
         : tab === "stats"
         ? statsHtml
@@ -802,8 +949,9 @@
            <div class="event-row"><span style="flex:1">${t("referee")}</span><b>${esc(ref || "—")}</b></div>
            <div class="event-row"><span style="flex:1">${t("kickoff")}</span><b>${esc(formatKick(sb.Esd || info.Esd))}</b></div>`;
 
+    const hideHero = tab === "watch";
     $("#view").innerHTML = `
-      <div class="sheet-card scoreboard">
+      ${hideHero ? "" : `<div class="sheet-card scoreboard">
         <div class="comp">${esc(comp)}${sb.Stg?.Cnm ? " · " + esc(sb.Stg.Cnm) : ""}</div>
         <div class="sb-row">
           <div class="sb-team">${crest(t1, true)}<div class="nm">${esc(t1.name)}</div></div>
@@ -811,14 +959,15 @@
           <div class="sb-team">${crest(t2, true)}<div class="nm">${esc(t2.name)}</div></div>
         </div>
         <div class="sb-meta">${st.kind === "live" ? `<span class="live">${esc(st.label)}</span>` : esc(st.label)}</div>
-      </div>
+      </div>`}
       <div class="seg">
+        <button data-mtab="watch" class="${tab === "watch" ? "on" : ""}">${t("watch")}</button>
         <button data-mtab="events" class="${tab === "events" ? "on" : ""}">${t("events")}</button>
         <button data-mtab="stats" class="${tab === "stats" ? "on" : ""}">${t("stats")}</button>
         <button data-mtab="lineups" class="${tab === "lineups" ? "on" : ""}">${t("lineups")}</button>
         <button data-mtab="info" class="${tab === "info" ? "on" : ""}">${t("info")}</button>
       </div>
-      <div class="sheet-card">${body}</div>
+      ${tab === "watch" ? body : `<div class="sheet-card">${body}</div>`}
     `;
   }
 
