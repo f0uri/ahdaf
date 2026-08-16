@@ -191,183 +191,53 @@
 
   const FLAG = {
     morocco: "ma", england: "gb-eng", spain: "es", italy: "it", germany: "de",
-    france: "fr", egypt: "eg", "saudi-arabia": "sa", holland: "nl", portugal: "pt",
-    usa: "us", brazil: "br", mexico: "mx", turkey: "tr", turkiye: "tr",
-    argentina: "ar", belgium: "be", scotland: "gb-sct", "south-africa": "za",
-    tunisia: "tn", algeria: "dz", nigeria: "ng", japan: "jp", china: "cn",
-    australia: "au", canada: "ca", denmark: "dk", sweden: "se", norway: "no",
-    switzerland: "ch", austria: "at", greece: "gr", poland: "pl", ukraine: "ua",
-    russia: "ru", croatia: "hr", serbia: "rs", romania: "ro", "czech-republic": "cz",
-    ireland: "ie", wales: "gb-wls", colombia: "co", chile: "cl", peru: "pe",
-    ecuador: "ec", uruguay: "uy", paraguay: "py", "costa-rica": "cr",
-    honduras: "hn", guatemala: "gt", "united-arab-emirates": "ae", qatar: "qa",
-    iraq: "iq", jordan: "jo", lebanon: "lb", kuwait: "kw", bahrain: "bh",
-    oman: "om", yemen: "ye", palestine: "ps", sudan: "sd", libya: "ly",
-    senegal: "sn", ghana: "gh", "ivory-coast": "ci", cameroon: "cm",
+    france: "fr", egypt: "eg", "saudi-arabia": "sa", holland: "nl", netherlands: "nl",
+    portugal: "pt", usa: "us", "united-states": "us", brazil: "br", mexico: "mx",
+    turkey: "tr", turkiye: "tr", argentina: "ar", belgium: "be", scotland: "gb-sct",
+    "south-africa": "za", tunisia: "tn", algeria: "dz", nigeria: "ng", japan: "jp",
+    china: "cn", australia: "au", canada: "ca", denmark: "dk", sweden: "se",
+    norway: "no", switzerland: "ch", austria: "at", greece: "gr", poland: "pl",
+    ukraine: "ua", russia: "ru", croatia: "hr", serbia: "rs", romania: "ro",
+    "czech-republic": "cz", czechia: "cz", ireland: "ie", wales: "gb-wls",
+    colombia: "co", chile: "cl", peru: "pe", ecuador: "ec", uruguay: "uy",
+    paraguay: "py", "costa-rica": "cr", honduras: "hn", guatemala: "gt",
+    "united-arab-emirates": "ae", uae: "ae", qatar: "qa", iraq: "iq", jordan: "jo",
+    lebanon: "lb", kuwait: "kw", bahrain: "bh", oman: "om", yemen: "ye",
+    palestine: "ps", sudan: "sd", libya: "ly", senegal: "sn", ghana: "gh",
+    "ivory-coast": "ci", "cote-divoire": "ci", cameroon: "cm", mali: "ml",
+    "burkina-faso": "bf", guinea: "gn", "guinea-bissau": "gw", gambia: "gm",
+    togo: "tg", benin: "bj", niger: "ne", chad: "td", mauritania: "mr",
+    "sierra-leone": "sl", liberia: "lr", gabon: "ga", congo: "cg",
+    "dr-congo": "cd", angola: "ao", mozambique: "mz", zambia: "zm",
+    zimbabwe: "zw", malawi: "mw", rwanda: "rw", uganda: "ug", kenya: "ke",
+    tanzania: "tz", ethiopia: "et", somalia: "so", djibouti: "dj",
+    madagascar: "mg", comoros: "km", mauritius: "mu", "cape-verde": "cv",
+    botswana: "bw", namibia: "na", india: "in", pakistan: "pk", bangladesh: "bd",
+    indonesia: "id", malaysia: "my", thailand: "th", vietnam: "vn",
+    "south-korea": "kr", korea: "kr", philippines: "ph", singapore: "sg",
+    "hong-kong": "hk", uzbekistan: "uz", kazakhstan: "kz", iran: "ir",
+    finland: "fi", iceland: "is", estonia: "ee", latvia: "lv", lithuania: "lt",
+    hungary: "hu", slovakia: "sk", slovenia: "si", bulgaria: "bg",
+    macedonia: "mk", "north-macedonia": "mk", albania: "al", bosnia: "ba",
+    "bosnia-and-herzegovina": "ba", montenegro: "me", kosovo: "xk",
+    moldova: "md", belarus: "by", cyprus: "cy", malta: "mt", luxembourg: "lu",
+    israel: "il", syria: "sy", bolivia: "bo", venezuela: "ve", panama: "pa",
+    jamaica: "jm", "new-zealand": "nz", "united-kingdom": "gb", uk: "gb",
+    "northern-ireland": "gb-nir", "faroe-islands": "fo",
     "champions-league": "eu", "europa-league": "eu", uefa: "eu", fifa: "un",
-    intl: "un", international: "un", africa: "un", caf: "un",
+    intl: "un", international: "un", africa: "un", caf: "un", concacaf: "un",
+    conmebol: "un", "club-friendlies": "un", friendlies: "un",
   };
 
-  const state = {
-    lang: localStorage.getItem("ahdaf-lang") || "ar",
-    theme: localStorage.getItem("ahdaf-theme") || "dark",
-    tab: "matches",
-    date: null,
-    filter: "all",
-    q: "",
-    searchOpen: false,
-    stack: [],
-    featured: [],
-    countries: [],
-    catalog: [],
-    stages: [],
-    live: [],
-    today: null,
-    favLeagues: JSON.parse(localStorage.getItem("ahdaf-fav-l") || "null") || [
-      "morocco/botola-pro/200",
-      "england/premier-league/65",
-      "spain/laliga/75",
-      "champions-league/qualification/60",
-      "club-friendlies/club-friendlies-2026/310",
-    ],
-    cache: {},
-    liveTimer: null,
+  const FLAG_NAME = {
+    morocco: "ma", maroc: "ma", england: "gb-eng", spain: "es", italy: "it",
+    germany: "de", france: "fr", egypt: "eg", netherlands: "nl", holland: "nl",
+    portugal: "pt", brazil: "br", mexico: "mx", turkey: "tr", argentina: "ar",
+    belgium: "be", scotland: "gb-sct", tunisia: "tn", algeria: "dz",
+    nigeria: "ng", japan: "jp", china: "cn", australia: "au", canada: "ca",
+    "saudi arabia": "sa", "south africa": "za", "united states": "us", usa: "us",
+    "ivory coast": "ci",
   };
-
-  const t = (k) => I18N[state.lang][k] || k;
-
-  function applyChrome() {
-    document.documentElement.lang = state.lang;
-    document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr";
-    document.documentElement.dataset.theme = state.theme;
-    const themeColor = state.theme === "dark" ? "#0B0F12" : "#F2F2F7";
-    document.querySelector('meta[name="theme-color"]').setAttribute("content", themeColor);
-    const bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-    if (bar) bar.setAttribute("content", state.theme === "dark" ? "black-translucent" : "default");
-    $("#searchInput").placeholder = t("search");
-    const labels = { matches: t("matches"), live: t("live"), leagues: t("leagues"), more: t("more") };
-    $$(".tab").forEach((b) => {
-      b.querySelector("span").textContent = labels[b.dataset.tab];
-      b.classList.toggle("on", b.dataset.tab === state.tab && !state.stack.length);
-    });
-    const n = followedStages(state.live || []).reduce((a, s) => a + (s.Events || []).length, 0);
-    const dot = $("#liveDot");
-    if (dot) {
-      dot.textContent = n > 99 ? "99" : String(n);
-      dot.classList.toggle("show", n > 0);
-    }
-  }
-
-  function saveFav() {
-    localStorage.setItem("ahdaf-fav-l", JSON.stringify(state.favLeagues));
-  }
-  function isFav(key) {
-    return state.favLeagues.includes(key);
-  }
-  function isFriendly(s) {
-    const blob = `${s.Ccd || s.ccd || ""} ${s.Cnm || s.country || ""} ${s.Snm || s.stage || ""} ${s.Scd || s.scd || ""} ${s.CompN || s.name || ""}`.toLowerCase();
-    return blob.includes("friend") || blob.includes("ودي") || (s.Ccd || s.ccd) === "club-friendlies";
-  }
-  function followedStages(stages) {
-    return (stages || []).filter((s) => isFav(leagueKey(s)) || isFriendly(s));
-  }
-  function toggleFav(key) {
-    if (isFav(key)) state.favLeagues = state.favLeagues.filter((x) => x !== key);
-    else state.favLeagues.unshift(key);
-    saveFav();
-  }
-  function leagueKey(s) {
-    return `${s.Ccd || s.ccd}/${s.Scd || s.scd}/${s.CompId || s.Sid || s.CompId}`;
-  }
-
-  function esc(s) {
-    return String(s ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/"/g, "&quot;");
-  }
-
-  function ymdFromOffset(off) {
-    const [y, m, d] = [
-      state.today.slice(0, 4),
-      state.today.slice(4, 6),
-      state.today.slice(6, 8),
-    ].map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, d + off));
-    const yy = dt.getUTCFullYear();
-    const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(dt.getUTCDate()).padStart(2, "0");
-    return `${yy}${mm}${dd}`;
-  }
-
-  function parseYmd(ymd) {
-    return {
-      y: +ymd.slice(0, 4),
-      m: +ymd.slice(4, 6),
-      d: +ymd.slice(6, 8),
-      date: new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8)),
-    };
-  }
-
-  function formatKick(esd) {
-    if (!esd) return "—";
-    const s = String(esd);
-    if (s.length < 12) return "—";
-    return `${s.slice(8, 10)}:${s.slice(10, 12)}`;
-  }
-
-  function esdYmd(esd) {
-    const s = String(esd || "");
-    return s.length >= 8 ? s.slice(0, 8) : "";
-  }
-
-  function ymdDate(ymd) {
-    if (!ymd || ymd.length < 8) return null;
-    return new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8));
-  }
-
-  function dayLabel(ymd) {
-    if (!ymd || !state.today) return "";
-    if (ymd === state.today) return t("today");
-    if (ymd === ymdFromOffset(-1)) return t("yesterday");
-    if (ymd === ymdFromOffset(1)) return t("tomorrow");
-    const d = ymdDate(ymd);
-    return d ? t("weekdays")[d.getDay()] : "";
-  }
-
-  function dayHeading(ymd) {
-    const d = ymdDate(ymd);
-    if (!d) return dayLabel(ymd);
-    const months = t("months");
-    const mon = Array.isArray(months) ? months[d.getMonth()] : "";
-    return `${dayLabel(ymd)} · ${d.getDate()} ${mon}`;
-  }
-
-  function statusOf(ev) {
-    const eps = String(ev.Eps || "");
-    const epr = ev.Epr;
-    if (epr === 1 || /'|HT|Pause|Pen/i.test(eps) && epr !== 2 && eps !== "NS") {
-      if (/^FT|AET|AP|Finished/i.test(eps)) return { kind: "ft", label: t("ft") };
-      if (eps === "HT" || ev.Esid === 10) return { kind: "live", label: t("ht") };
-      return { kind: "live", label: eps.replace("'", "′") };
-    }
-    if (epr === 2 || /^FT|AET|AP/i.test(eps)) return { kind: "ft", label: t("ft") };
-    if (/Post/i.test(eps)) return { kind: "other", label: t("postponed") };
-    if (/Canc|Abd/i.test(eps)) return { kind: "other", label: t("cancelled") };
-    if (eps === "NS" || epr === 0) return { kind: "ns", label: formatKick(ev.Esd) };
-    return { kind: "ns", label: eps || formatKick(ev.Esd) };
-  }
-
-  function teamOf(arr) {
-    const o = (arr && arr[0]) || {};
-    return {
-      id: o.ID,
-      name: o.Nm || "—",
-      img: o.Img,
-      abr: o.Abr || (o.Nm || "?").slice(0, 3),
-      color: o.Fc || o.firstColor,
-    };
-  }
 
   const LS = "https://prod-public-api.livescore.com/v1/api/app";
   const IMG_CDN = "https://lsm-static-prod.livescore.com/medium/";
@@ -465,10 +335,13 @@
     </span>`;
   }
 
-  function flag(ccd) {
-    const code = FLAG[ccd] || "";
+  function flag(ccd, countryName) {
+    let code = FLAG[String(ccd || "").toLowerCase()] || "";
+    if (!code && countryName) code = FLAG_NAME[String(countryName).toLowerCase()] || "";
+    if (!code && ccd && /^[a-z]{2}$/i.test(ccd)) code = ccd.toLowerCase();
     if (!code) return `<span class="flag-fallback">${esc((ccd || "?").slice(0, 2).toUpperCase())}</span>`;
-    return `<img class="flag" alt="" src="https://flagcdn.com/w40/${code}.png" onerror="this.outerHTML='<span class=flag-fallback>${esc((ccd || "").slice(0, 2))}</span>'">`;
+    const safe = String(code).replace(/[^a-z0-9-]/gi, "");
+    return `<img class="flag" alt="" src="https://flagcdn.com/w40/${safe}.png" onerror="this.outerHTML='<span class=flag-fallback>${esc((ccd || "").slice(0, 2))}</span>'">`;
   }
 
   async function api(path) {
@@ -619,7 +492,7 @@
     return `<article class="match" data-eid="${esc(ev.Eid)}" data-sid="${esc(stage.Sid || "")}" data-ccd="${esc(stage.Ccd || "")}" data-scd="${esc(stage.Scd || "")}" data-cid="${esc(stage.CompId || stage.Sid || "")}">
       <div class="mtime ${st.kind}">${esc(when)}</div>
       <div class="mside home ${w1}"><span class="nm">${esc(t1.name)}</span>${crest(t1)}</div>
-      <div class="mscore">${showScore ? `${esc(s1)}<i>-</i>${esc(s2)}` : "–"}</div>
+      <div class="mscore" dir="ltr">${showScore ? `${esc(s1)}<i>-</i>${esc(s2)}` : "–"}</div>
       <div class="mside away ${w2}">${crest(t2)}<span class="nm">${esc(t2.name)}</span></div>
     </article>`;
   }
@@ -659,7 +532,7 @@
         return `<section class="league">
           <div class="league-h">
             <button class="league-open" data-ccd="${esc(s.Ccd)}" data-scd="${esc(s.Scd)}" data-cid="${esc(s.CompId || s.Sid)}" data-name="${esc(name)}">
-              ${flag(s.Ccd)}
+              ${flag(s.Ccd, s.Cnm)}
             </button>
             <button class="meta league-open" data-ccd="${esc(s.Ccd)}" data-scd="${esc(s.Scd)}" data-cid="${esc(s.CompId || s.Sid)}" data-name="${esc(name)}">
               <b>${esc(name)}</b>
@@ -719,7 +592,7 @@
       const key = `${f.ccd}/${f.scd}/${f.CompId}`;
       return `<div class="feat-wrap">
         <button class="feat league-open" data-ccd="${esc(f.ccd)}" data-scd="${esc(f.scd)}" data-cid="${esc(f.CompId)}" data-name="${esc(state.lang === "ar" ? f.nameAr : f.name)}">
-          ${flag(f.flag === "gb-eng" ? "england" : f.ccd)}
+          ${flag(f.flag === "gb-eng" ? "england" : f.ccd, f.country)}
           <b>${esc(state.lang === "ar" ? f.nameAr : f.name)}</b>
           <span>${esc(state.lang === "ar" ? f.countryAr : f.country)}</span>
         </button>
@@ -733,7 +606,7 @@
       .slice(0, 180)
       .map(
         (c) => `<button class="list-row country-open" data-ccd="${esc(c.ccd)}" data-name="${esc(state.lang === "ar" ? c.nameAr : c.name)}">
-          ${flag(c.ccd)}
+          ${flag(c.ccd, c.name)}
           <span style="flex:1;text-align:start;font-weight:550">${esc(state.lang === "ar" ? c.nameAr : c.name)}</span>
           <span class="go">‹</span>
         </button>`
@@ -816,7 +689,8 @@
               <span class="min">${e.min ?? ""}′</span>
               ${L.lab ? `<span class="pill ${L.cls}">${esc(L.lab)}</span>` : ""}
               <span>${esc(e.player || "")}</span>
-              ${e.sc ? `<b>${e.sc[0]}-${e.sc[1]}</b>` : ""}
+              <span style="color:var(--secondary);font-size:12px">${esc(e.nm === 2 ? t2.name : t1.name)}</span>
+              ${e.sc ? `<b dir="ltr">${e.sc[0]}-${e.sc[1]}</b>` : ""}
             </div>`;
           })
           .join("")
@@ -829,7 +703,7 @@
         </div>
         <div class="theater-score">
           <div class="th-team">${crest(t1, true)}<b>${esc(t1.name)}</b></div>
-          <div class="th-nums" id="watchNums">${show ? `${esc(s1)}<span>–</span>${esc(s2)}` : formatKick(sb.Esd)}</div>
+          <div class="th-nums" id="watchNums" dir="ltr">${show ? `${esc(s1)}<span>–</span>${esc(s2)}` : formatKick(sb.Esd)}</div>
           <div class="th-team">${crest(t2, true)}<b>${esc(t2.name)}</b></div>
         </div>
       </div>
@@ -881,12 +755,12 @@
       ? incs
           .map((e) => {
             const L = incidentLabel(e.it, e.nm);
-            const side = e.nm === 2 ? t("away") : t("home");
+            const teamNm = e.nm === 2 ? t2.name : t1.name;
             return `<div class="event-row">
               <span class="min">${e.min ?? ""}′</span>
               ${L.lab ? `<span class="pill ${L.cls}">${esc(L.lab)}</span>` : ""}
               <span style="flex:1">${esc(e.player || "")}</span>
-              <span style="color:var(--muted);font-size:12px">${esc(side)}</span>
+              <span style="color:var(--secondary);font-size:12px">${esc(teamNm)}</span>
               ${e.sc ? `<span class="sc">${e.sc[0]}-${e.sc[1]}</span>` : ""}
             </div>`;
           })
@@ -1096,11 +970,18 @@
   function renderSettings() {
     setTitle(t("settings"), t("app"));
     $("#view").innerHTML = `
-      <div class="sheet-card">
-        <div class="settings-row">
-          <div>
-            <b>${t("dark")}</b>
+      <div class="sheet-card glass">
+        <div class="credit">
+          <div class="credit-name">
+            <b>Youssef Mansouri</b>
+            <span class="verified" title="Verified">
+              <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="10" fill="#1ee0b0"/><path d="M7.5 12.3l3 3 6-6.2" fill="none" stroke="#06241c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
           </div>
+          <span>${state.lang === "ar" ? "الحقوق محفوظة" : "All rights reserved"}</span>
+        </div>
+        <div class="settings-row">
+          <div><b>${t("dark")}</b></div>
           <button class="toggle ${state.theme === "dark" ? "on" : ""}" id="themeToggle"><i></i></button>
         </div>
         <div class="settings-row">
@@ -1108,7 +989,6 @@
           <button class="chip on" id="langToggle">${t("lang")}</button>
         </div>
       </div>
-      <div class="empty"><p>أهداف · ${state.lang === "ar" ? "نتائج كل الدوريات والكؤوس" : "Scores for every league and cup"}</p></div>
     `;
   }
 
@@ -1143,6 +1023,51 @@
     else if (page.type === "settings") renderSettings();
   }
 
+  const DHIKR = [
+    "أستغفر الله",
+    "أستغفر الله وأتوب إليه",
+    "اللهم صل على محمد وعلى آل محمد",
+    "اللهم صل وسلم على نبينا محمد",
+    "سبحان الله وبحمده",
+    "لا إله إلا الله",
+    "الحمد لله رب العالمين",
+    "لا حول ولا قوة إلا بالله",
+  ];
+
+  function startDhikr() {
+    const el = $("#toast");
+    if (!el) return;
+    const show = () => {
+      el.textContent = DHIKR[Math.floor(Math.random() * DHIKR.length)];
+      el.classList.add("on");
+      clearTimeout(show.hide);
+      show.hide = setTimeout(() => el.classList.remove("on"), 5000);
+    };
+    setTimeout(show, 8000);
+    setInterval(show, 4 * 60 * 1000);
+  }
+
+  function tap() {
+    try { navigator.vibrate?.(10); } catch {}
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      tap.ctx = tap.ctx || new AC();
+      const ctx = tap.ctx;
+      if (ctx.state === "suspended") ctx.resume();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = "triangle";
+      o.frequency.value = 210;
+      g.gain.setValueAtTime(0.03, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.045);
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.start();
+      o.stop(ctx.currentTime + 0.05);
+    } catch {}
+  }
+
   function bind() {
     $("#backBtn").addEventListener("click", pop);
     $("#searchBtn").addEventListener("click", () => {
@@ -1175,6 +1100,7 @@
     $("#tabbar").addEventListener("click", (e) => {
       const b = e.target.closest(".tab");
       if (!b) return;
+      tap();
       state.tab = b.dataset.tab;
       state.stack = [];
       state.filter = "all";
@@ -1182,6 +1108,7 @@
       else renderPage();
     });
     $("#view").addEventListener("click", (e) => {
+      if (e.target.closest("button, .match, .feat, .list-row, .chip, .star, .toggle")) tap();
       const go = e.target.closest("[data-go-tab]");
       if (go) {
         state.tab = go.dataset.goTab;
@@ -1271,7 +1198,7 @@
     renderDates();
     renderChips();
     renderPage();
-    requestAnimationFrame(() => $("#splash").classList.add("hide"));
+    startDhikr();
     state.liveTimer = setInterval(async () => {
       if (document.hidden) return;
       const page = state.stack[state.stack.length - 1];

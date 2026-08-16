@@ -111,6 +111,24 @@ app.disable("x-powered-by");
 app.use(express.json({ limit: "32kb" }));
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "script-src 'self'",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src https://fonts.gstatic.com",
+      "img-src 'self' data: https://flagcdn.com https://lsm-static-prod.livescore.com",
+      "connect-src 'self' https://prod-public-api.livescore.com",
+      "media-src 'none'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'none'",
+    ].join("; ")
+  );
   next();
 });
 
