@@ -1216,30 +1216,66 @@
     setInterval(show, 4 * 60 * 1000);
   }
 
-  function tap() {
-    try { navigator.vibrate?.(10); } catch {}
+  function unlockAudio() {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      tap.ctx = tap.ctx || new AC();
+      if (tap.ctx.state === "suspended") tap.ctx.resume();
+    } catch {}
+  }
+
+  function playClickFile() {
+    if (!tap.pool) {
+      tap.pool = [0, 1, 2].map(() => {
+        const a = new Audio("/sounds/click.wav");
+        a.preload = "auto";
+        a.volume = 0.55;
+        return a;
+      });
+      tap.pi = 0;
+    }
+    const a = tap.pool[tap.pi++ % tap.pool.length];
+    try { a.currentTime = 0; } catch {}
+    const p = a.play();
+    if (p && p.catch) p.catch(() => synthClick());
+  }
+
+  function synthClick() {
     try {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return;
       tap.ctx = tap.ctx || new AC();
       const ctx = tap.ctx;
       if (ctx.state === "suspended") ctx.resume();
-      const o = ctx.createOscillator();
+      const t0 = ctx.currentTime;
       const g = ctx.createGain();
-      o.type = "triangle";
-      o.frequency.value = 210;
-      g.gain.setValueAtTime(0.03, ctx.currentTime);
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.045);
-      o.connect(g);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.18, t0 + 0.004);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.04);
       g.connect(ctx.destination);
-      o.start();
-      o.stop(ctx.currentTime + 0.05);
+      const o1 = ctx.createOscillator();
+      o1.type = "sine";
+      o1.frequency.setValueAtTime(1900, t0);
+      o1.frequency.exponentialRampToValueAtTime(700, t0 + 0.03);
+      o1.connect(g);
+      o1.start(t0);
+      o1.stop(t0 + 0.042);
     } catch {}
   }
 
+  function tap() {
+    try { navigator.vibrate?.(12); } catch {}
+    unlockAudio();
+    try { playClickFile(); } catch { synthClick(); }
+  }
+
   function bind() {
-    $("#backBtn").addEventListener("click", pop);
+    document.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
+    document.addEventListener("click", unlockAudio, { once: true });
+    $("#backBtn").addEventListener("click", () => { tap(); pop(); });
     $("#searchBtn").addEventListener("click", () => {
+      tap();
       state.searchOpen = !state.searchOpen;
       $("#searchWrap").classList.toggle("hidden", !state.searchOpen);
       if (state.searchOpen) $("#searchInput").focus();
@@ -1249,7 +1285,7 @@
         renderPage();
       }
     });
-    $("#moreBtn").addEventListener("click", openSettings);
+    $("#moreBtn").addEventListener("click", () => { tap(); openSettings(); });
     $("#searchInput").addEventListener("input", (e) => {
       state.q = e.target.value.trim();
       renderPage();
@@ -1257,11 +1293,13 @@
     $("#dates").addEventListener("click", (e) => {
       const b = e.target.closest(".day");
       if (!b) return;
+      tap();
       loadDate(b.dataset.ymd);
     });
     $("#chips").addEventListener("click", (e) => {
       const b = e.target.closest(".chip");
       if (!b) return;
+      tap();
       state.filter = b.dataset.f;
       renderChips();
       renderPage();
