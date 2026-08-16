@@ -69,6 +69,8 @@
       pickLeagues: "اختيار الدوريات",
       myLeagues: "دورياتي",
       discover: "اكتشف الدوريات",
+      friendlies: "المباريات الودية",
+      months: ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
       theater: "وضع المشاهدة",
       channels: "أين تشاهد",
       officialStream: "بث رسمي",
@@ -159,6 +161,8 @@
       pickLeagues: "Choose leagues",
       myLeagues: "My leagues",
       discover: "Discover",
+      friendlies: "Friendlies",
+      months: ["January","February","March","April","May","June","July","August","September","October","November","December"],
       theater: "Watch mode",
       channels: "Where to watch",
       officialStream: "Official stream",
@@ -224,6 +228,7 @@
       "england/premier-league/65",
       "spain/laliga/75",
       "champions-league/qualification/60",
+      "club-friendlies/club-friendlies-2026/310",
     ],
     cache: {},
     liveTimer: null,
@@ -259,8 +264,12 @@
   function isFav(key) {
     return state.favLeagues.includes(key);
   }
+  function isFriendly(s) {
+    const blob = `${s.Ccd || s.ccd || ""} ${s.Cnm || s.country || ""} ${s.Snm || s.stage || ""} ${s.Scd || s.scd || ""} ${s.CompN || s.name || ""}`.toLowerCase();
+    return blob.includes("friend") || blob.includes("ودي") || (s.Ccd || s.ccd) === "club-friendlies";
+  }
   function followedStages(stages) {
-    return (stages || []).filter((s) => isFav(leagueKey(s)));
+    return (stages || []).filter((s) => isFav(leagueKey(s)) || isFriendly(s));
   }
   function toggleFav(key) {
     if (isFav(key)) state.favLeagues = state.favLeagues.filter((x) => x !== key);
@@ -307,6 +316,33 @@
     return `${s.slice(8, 10)}:${s.slice(10, 12)}`;
   }
 
+  function esdYmd(esd) {
+    const s = String(esd || "");
+    return s.length >= 8 ? s.slice(0, 8) : "";
+  }
+
+  function ymdDate(ymd) {
+    if (!ymd || ymd.length < 8) return null;
+    return new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8));
+  }
+
+  function dayLabel(ymd) {
+    if (!ymd || !state.today) return "";
+    if (ymd === state.today) return t("today");
+    if (ymd === ymdFromOffset(-1)) return t("yesterday");
+    if (ymd === ymdFromOffset(1)) return t("tomorrow");
+    const d = ymdDate(ymd);
+    return d ? t("weekdays")[d.getDay()] : "";
+  }
+
+  function dayHeading(ymd) {
+    const d = ymdDate(ymd);
+    if (!d) return dayLabel(ymd);
+    const months = t("months");
+    const mon = Array.isArray(months) ? months[d.getMonth()] : "";
+    return `${dayLabel(ymd)} · ${d.getDate()} ${mon}`;
+  }
+
   function statusOf(ev) {
     const eps = String(ev.Eps || "");
     const epr = ev.Epr;
@@ -336,6 +372,7 @@
   const LS = "https://prod-public-api.livescore.com/v1/api/app";
   const IMG_CDN = "https://lsm-static-prod.livescore.com/medium/";
   const FEATURED = [
+    { ccd: "club-friendlies", scd: "club-friendlies-2026", CompId: "310", name: "Club Friendlies", nameAr: "المباريات الودية", country: "International", countryAr: "ودية", flag: "un" },
     { ccd: "morocco", scd: "botola-pro", CompId: "200", name: "Botola Pro", nameAr: "البطولة الاحترافية", country: "Morocco", countryAr: "المغرب", flag: "ma" },
     { ccd: "england", scd: "premier-league", CompId: "65", name: "Premier League", nameAr: "الدوري الإنجليزي", country: "England", countryAr: "إنجلترا", flag: "gb-eng" },
     { ccd: "spain", scd: "laliga", CompId: "75", name: "LaLiga", nameAr: "الليغا", country: "Spain", countryAr: "إسبانيا", flag: "es" },
@@ -557,7 +594,7 @@
     return t1.includes(q) || t2.includes(q);
   }
 
-  function renderMatch(ev, stage) {
+  function renderMatch(ev, stage, opts = {}) {
     const t1 = teamOf(ev.T1);
     const t2 = teamOf(ev.T2);
     const st = statusOf(ev);
@@ -569,8 +606,18 @@
       if (+s1 > +s2) { w1 = "win"; w2 = "lose"; }
       else if (+s2 > +s1) { w2 = "win"; w1 = "lose"; }
     }
+    let when = st.label;
+    if (st.kind === "ns") {
+      const ymd = esdYmd(ev.Esd);
+      const clock = formatKick(ev.Esd);
+      const dn = dayLabel(ymd);
+      when = opts.showDay && dn ? `${dn}\n${clock}` : clock;
+    } else if (opts.showDay && ev.Esd) {
+      const dn = dayLabel(esdYmd(ev.Esd));
+      if (dn) when = `${dn}\n${st.label}`;
+    }
     return `<article class="match" data-eid="${esc(ev.Eid)}" data-sid="${esc(stage.Sid || "")}" data-ccd="${esc(stage.Ccd || "")}" data-scd="${esc(stage.Scd || "")}" data-cid="${esc(stage.CompId || stage.Sid || "")}">
-      <div class="mtime ${st.kind}">${esc(st.label)}</div>
+      <div class="mtime ${st.kind}">${esc(when)}</div>
       <div class="mside home ${w1}"><span class="nm">${esc(t1.name)}</span>${crest(t1)}</div>
       <div class="mscore">${showScore ? `${esc(s1)}<i>-</i>${esc(s2)}` : "–"}</div>
       <div class="mside away ${w2}">${crest(t2)}<span class="nm">${esc(t2.name)}</span></div>
@@ -605,10 +652,10 @@
       }
       return empty(opts.emptyTitle || t("emptyDay"), opts.emptySub || "");
     }
-    return list
+    const html = list
       .map((s) => {
         const key = leagueKey(s);
-        const name = state.lang === "ar" ? s.CompN || s.Snm : s.Snm || s.CompN;
+        const name = isFriendly(s) ? t("friendlies") : state.lang === "ar" ? s.CompN || s.Snm : s.Snm || s.CompN;
         return `<section class="league">
           <div class="league-h">
             <button class="league-open" data-ccd="${esc(s.Ccd)}" data-scd="${esc(s.Scd)}" data-cid="${esc(s.CompId || s.Sid)}" data-name="${esc(name)}">
@@ -621,10 +668,14 @@
             <span class="chev">‹</span>
             <button class="star ${isFav(key) ? "on" : ""}" data-key="${esc(key)}" aria-label="fav">★</button>
           </div>
-          ${s.Events.map((ev) => renderMatch(ev, s)).join("")}
+          ${s.Events.map((ev) => renderMatch(ev, s, { showDay: false })).join("")}
         </section>`;
       })
       .join("");
+    if (opts.followedOnly && state.date) {
+      return `<div class="day-banner sticky">${esc(dayHeading(state.date))}</div>${html}`;
+    }
+    return html;
   }
 
   async function loadDate(ymd, { silent } = {}) {
@@ -976,8 +1027,21 @@
     const upcoming = evs.filter((e) => String(e.Esd || "").slice(0, 8) >= state.today && statusOf(e).kind !== "ft");
     const results = evs.filter((e) => statusOf(e).kind === "ft").slice().reverse();
     const list = tab === "results" ? results : upcoming.length ? upcoming : evs;
+    const groups = [];
+    for (const e of list) {
+      const ymd = esdYmd(e.Esd) || "00000000";
+      if (!groups.length || groups[groups.length - 1].ymd !== ymd) groups.push({ ymd, evs: [e] });
+      else groups[groups.length - 1].evs.push(e);
+    }
     const matchesHtml = list.length
-      ? `<section class="league">${list.map((e) => renderMatch(e, stg)).join("")}</section>`
+      ? groups
+          .map(
+            (g) => `<section class="league">
+              <div class="day-banner">${esc(dayHeading(g.ymd))}</div>
+              ${g.evs.map((e) => renderMatch(e, stg, { showDay: false })).join("")}
+            </section>`
+          )
+          .join("")
       : empty(t("emptyDay"));
 
     $("#view").innerHTML = `
