@@ -1,4 +1,4 @@
-const CACHE = "ahdaf-v1";
+const CACHE = "ahdaf-v10";
 const PRECACHE = ["/", "/css/app.css", "/js/app.js", "/manifest.json", "/icons/icon-192.png"];
 
 self.addEventListener("install", (e) => {

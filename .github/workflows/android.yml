@@ -39,8 +39,10 @@ jobs:
           npx cap add android
           npx cap sync android
 
-      - name: Configure Android app
+      - name: Configure Android app and icons
         run: |
+          pip install --quiet pillow
+          python3 scripts/make-android-icons.py
           python3 << 'PY'
           from pathlib import Path
           strings = Path("android/app/src/main/res/values/strings.xml")
@@ -48,12 +50,21 @@ jobs:
               s = strings.read_text()
               s = s.replace(">Ahdaf<", ">أهداف<").replace(">ahdaf<", ">أهداف<")
               strings.write_text(s)
+          styles = Path("android/app/src/main/res/values/styles.xml")
+          if styles.exists():
+              t = styles.read_text()
+              t = t.replace(
+                  'parent="AppTheme.NoActionBar"',
+                  'parent="AppTheme.NoActionBar"',
+              )
+              if "windowDisablePreview" not in t:
+                  t = t.replace(
+                      "</style>",
+                      "        <item name=\"android:windowDisablePreview\">true</item>\n    </style>",
+                      1,
+                  )
+              styles.write_text(t)
           PY
-          if [ -f public/icons/icon-192.png ]; then
-            mkdir -p android/app/src/main/res/mipmap-xxxhdpi
-            cp public/icons/icon-192.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-            cp public/icons/icon-192.png android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png || true
-          fi
 
       - name: Build debug APK
         working-directory: android

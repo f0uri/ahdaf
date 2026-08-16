@@ -239,6 +239,175 @@
     "ivory coast": "ci",
   };
 
+  function readFavs() {
+    try {
+      const raw = JSON.parse(localStorage.getItem("ahdaf-fav-l") || "null");
+      if (Array.isArray(raw) && raw.length) return raw;
+    } catch {}
+    return [
+      "morocco/botola-pro/200",
+      "england/premier-league/65",
+      "spain/laliga/75",
+      "champions-league/qualification/60",
+      "club-friendlies/club-friendlies-2026/310",
+    ];
+  }
+
+  const state = {
+    lang: localStorage.getItem("ahdaf-lang") || "ar",
+    theme: localStorage.getItem("ahdaf-theme") || "dark",
+    tab: "matches",
+    date: null,
+    filter: "all",
+    q: "",
+    searchOpen: false,
+    stack: [],
+    featured: [],
+    countries: [],
+    catalog: [],
+    stages: [],
+    live: [],
+    today: null,
+    favLeagues: readFavs(),
+    cache: {},
+    liveTimer: null,
+  };
+
+  const t = (k) => (I18N[state.lang] && I18N[state.lang][k]) || k;
+
+  function applyChrome() {
+    document.documentElement.lang = state.lang;
+    document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr";
+    document.documentElement.dataset.theme = state.theme;
+    const themeColor = state.theme === "dark" ? "#0B0F12" : "#F2F2F7";
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColor);
+    const bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (bar) bar.setAttribute("content", state.theme === "dark" ? "black-translucent" : "default");
+    const search = $("#searchInput");
+    if (search) search.placeholder = t("search");
+    const labels = { matches: t("matches"), live: t("live"), leagues: t("leagues"), more: t("more") };
+    $$(".tab").forEach((b) => {
+      const span = b.querySelector("span");
+      if (span) span.textContent = labels[b.dataset.tab] || "";
+      b.classList.toggle("on", b.dataset.tab === state.tab && !state.stack.length);
+    });
+    const n = followedStages(state.live || []).reduce((a, s) => a + (s.Events || []).length, 0);
+    const dot = $("#liveDot");
+    if (dot) {
+      dot.textContent = n > 99 ? "99" : String(n);
+      dot.classList.toggle("show", n > 0);
+    }
+  }
+
+  function saveFav() {
+    localStorage.setItem("ahdaf-fav-l", JSON.stringify(state.favLeagues));
+  }
+  function isFav(key) {
+    return state.favLeagues.includes(key);
+  }
+  function isFriendly(s) {
+    const blob = `${s.Ccd || s.ccd || ""} ${s.Cnm || s.country || ""} ${s.Snm || s.stage || ""} ${s.Scd || s.scd || ""} ${s.CompN || s.name || ""}`.toLowerCase();
+    return blob.includes("friend") || blob.includes("ودي") || (s.Ccd || s.ccd) === "club-friendlies";
+  }
+  function followedStages(stages) {
+    return (stages || []).filter((s) => isFav(leagueKey(s)) || isFriendly(s));
+  }
+  function toggleFav(key) {
+    if (isFav(key)) state.favLeagues = state.favLeagues.filter((x) => x !== key);
+    else state.favLeagues.unshift(key);
+    saveFav();
+  }
+  function leagueKey(s) {
+    return `${s.Ccd || s.ccd || ""}/${s.Scd || s.scd || ""}/${s.CompId || s.cid || s.Sid || ""}`;
+  }
+
+  function esc(s) {
+    return String(s ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function ymdFromOffset(off) {
+    const today = state.today || ymdCasa();
+    const [y, m, d] = [today.slice(0, 4), today.slice(4, 6), today.slice(6, 8)].map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d + off));
+    const yy = dt.getUTCFullYear();
+    const mm = String(dt.getUTCMonth() + 1).padStart(2, "0");
+    const dd = String(dt.getUTCDate()).padStart(2, "0");
+    return `${yy}${mm}${dd}`;
+  }
+
+  function parseYmd(ymd) {
+    return {
+      y: +ymd.slice(0, 4),
+      m: +ymd.slice(4, 6),
+      d: +ymd.slice(6, 8),
+      date: new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8)),
+    };
+  }
+
+  function formatKick(esd) {
+    if (!esd) return "—";
+    const s = String(esd);
+    if (s.length < 12) return "—";
+    return `${s.slice(8, 10)}:${s.slice(10, 12)}`;
+  }
+
+  function esdYmd(esd) {
+    const s = String(esd || "");
+    return s.length >= 8 ? s.slice(0, 8) : "";
+  }
+
+  function ymdDate(ymd) {
+    if (!ymd || ymd.length < 8) return null;
+    return new Date(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8));
+  }
+
+  function dayLabel(ymd) {
+    if (!ymd || !state.today) return "";
+    if (ymd === state.today) return t("today");
+    if (ymd === ymdFromOffset(-1)) return t("yesterday");
+    if (ymd === ymdFromOffset(1)) return t("tomorrow");
+    const d = ymdDate(ymd);
+    return d ? t("weekdays")[d.getDay()] : "";
+  }
+
+  function dayHeading(ymd) {
+    const d = ymdDate(ymd);
+    if (!d) return dayLabel(ymd);
+    const months = t("months");
+    const mon = Array.isArray(months) ? months[d.getMonth()] : "";
+    return `${dayLabel(ymd)} · ${d.getDate()} ${mon}`;
+  }
+
+  function statusOf(ev) {
+    const eps = String(ev.Eps || "");
+    const epr = ev.Epr;
+    if ((epr === 1 || /'|HT|Pause|Pen/i.test(eps)) && epr !== 2 && eps !== "NS") {
+      if (/^FT|AET|AP|Finished/i.test(eps)) return { kind: "ft", label: t("ft") };
+      if (eps === "HT" || ev.Esid === 10) return { kind: "live", label: t("ht") };
+      return { kind: "live", label: eps.replace("'", "′") };
+    }
+    if (epr === 2 || /^FT|AET|AP/i.test(eps)) return { kind: "ft", label: t("ft") };
+    if (/Post/i.test(eps)) return { kind: "other", label: t("postponed") };
+    if (/Canc|Abd/i.test(eps)) return { kind: "other", label: t("cancelled") };
+    if (eps === "NS" || epr === 0) return { kind: "ns", label: formatKick(ev.Esd) };
+    return { kind: "ns", label: eps || formatKick(ev.Esd) };
+  }
+
+  function teamOf(arr) {
+    const o = (arr && arr[0]) || {};
+    return {
+      id: o.ID,
+      name: o.Nm || "—",
+      img: o.Img,
+      abr: o.Abr || (o.Nm || "?").slice(0, 3),
+      color: o.Fc || o.firstColor,
+    };
+  }
+
   const LS = "https://prod-public-api.livescore.com/v1/api/app";
   const IMG_CDN = "https://lsm-static-prod.livescore.com/medium/";
   const FEATURED = [
@@ -761,7 +930,7 @@
               ${L.lab ? `<span class="pill ${L.cls}">${esc(L.lab)}</span>` : ""}
               <span style="flex:1">${esc(e.player || "")}</span>
               <span style="color:var(--secondary);font-size:12px">${esc(teamNm)}</span>
-              ${e.sc ? `<span class="sc">${e.sc[0]}-${e.sc[1]}</span>` : ""}
+              ${e.sc ? `<span class="sc" dir="ltr">${e.sc[0]}-${e.sc[1]}</span>` : ""}
             </div>`;
           })
           .join("")
@@ -837,7 +1006,7 @@
         <div class="comp">${esc(comp)}${sb.Stg?.Cnm ? " · " + esc(sb.Stg.Cnm) : ""}</div>
         <div class="sb-row">
           <div class="sb-team">${crest(t1, true)}<div class="nm">${esc(t1.name)}</div></div>
-          <div class="sb-score">${show ? `${esc(s1)} – ${esc(s2)}` : formatKick(sb.Esd)}</div>
+          <div class="sb-score" dir="ltr">${show ? `${esc(s1)} – ${esc(s2)}` : formatKick(sb.Esd)}</div>
           <div class="sb-team">${crest(t2, true)}<div class="nm">${esc(t2.name)}</div></div>
         </div>
         <div class="sb-meta">${st.kind === "live" ? `<span class="live">${esc(st.label)}</span>` : esc(st.label)}</div>
@@ -1105,6 +1274,7 @@
       state.stack = [];
       state.filter = "all";
       if (state.tab === "live") loadLive();
+      else if (state.tab === "matches" && !state.stages.length && state.date) loadDate(state.date);
       else renderPage();
     });
     $("#view").addEventListener("click", (e) => {
@@ -1176,29 +1346,51 @@
     });
   }
 
-  async function boot() {
-    applyChrome();
-    bind();
-    skeleton();
-    try {
-      const boot = await api("/api/bootstrap");
-      state.today = boot.today;
-      state.date = boot.date;
-      state.featured = boot.featured || [];
-      state.countries = boot.countries || [];
-      state.catalog = boot.catalog || [];
-      state.stages = boot.dateData?.Stages || [];
-      state.live = boot.liveData?.Stages || [];
-      state.cache["d:" + state.date] = { t: Date.now(), v: boot.dateData };
-    } catch {
-      state.today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-      state.date = state.today;
-      $("#view").innerHTML = empty(t("error"), "", `<button class="chip on" id="retry">${t("retry")}</button>`);
+  function showFatal(err) {
+    const view = $("#view");
+    if (view) {
+      view.innerHTML = empty(
+        t("error"),
+        String(err?.message || ""),
+        `<button class="cta" id="retry">${t("retry")}</button>`
+      );
     }
-    renderDates();
-    renderChips();
-    renderPage();
-    startDhikr();
+  }
+
+  async function boot() {
+    try {
+      applyChrome();
+      bind();
+      skeleton();
+      try {
+        const bootData = await api("/api/bootstrap");
+        state.today = bootData.today || ymdCasa();
+        state.date = bootData.date || state.today;
+        state.featured = bootData.featured?.length ? bootData.featured : FEATURED;
+        state.countries = bootData.countries || [];
+        state.catalog = bootData.catalog || [];
+        state.stages = bootData.dateData?.Stages || [];
+        state.live = bootData.liveData?.Stages || [];
+        state.cache["d:" + state.date] = { t: Date.now(), v: bootData.dateData };
+      } catch (e) {
+        state.today = ymdCasa();
+        state.date = state.today;
+        state.featured = FEATURED;
+        showFatal(e);
+        renderDates();
+        renderChips();
+        applyChrome();
+        startDhikr();
+        return;
+      }
+      renderDates();
+      renderChips();
+      renderPage();
+      startDhikr();
+    } catch (err) {
+      showFatal(err);
+      return;
+    }
     state.liveTimer = setInterval(async () => {
       if (document.hidden) return;
       const page = state.stack[state.stack.length - 1];

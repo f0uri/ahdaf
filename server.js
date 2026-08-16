@@ -9,6 +9,7 @@ const LS = "https://prod-public-api.livescore.com/v1/api/app";
 const IMG = "https://lsm-static-prod.livescore.com";
 
 const FEATURED = [
+  { ccd: "club-friendlies", scd: "club-friendlies-2026", CompId: "310", name: "Club Friendlies", nameAr: "المباريات الودية", country: "International", countryAr: "ودية", flag: "un" },
   { ccd: "morocco", scd: "botola-pro", CompId: "200", name: "Botola Pro", nameAr: "البطولة الاحترافية", country: "Morocco", countryAr: "المغرب", flag: "ma" },
   { ccd: "england", scd: "premier-league", CompId: "65", name: "Premier League", nameAr: "الدوري الإنجليزي", country: "England", countryAr: "إنجلترا", flag: "gb-eng" },
   { ccd: "spain", scd: "laliga", CompId: "75", name: "LaLiga", nameAr: "الليغا", country: "Spain", countryAr: "إسبانيا", flag: "es" },
