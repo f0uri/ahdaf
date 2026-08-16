@@ -58,7 +58,7 @@ def main():
         dest = RES / folder
         dest.mkdir(parents=True, exist_ok=True)
         canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-        inner = int(size * 0.62)
+        inner = int(size * 0.78)
         im = src.resize((inner, inner), Image.Resampling.LANCZOS)
         x = (size - inner) // 2
         canvas.paste(im, (x, x), im)
@@ -81,7 +81,7 @@ def main():
     bg_file.write_text(
         """<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#0B0F12</color>
+    <color name="ic_launcher_background">#F8F7F8</color>
 </resources>
 """
     )

@@ -740,11 +740,18 @@
   }
 
   async function loadLive({ silent } = {}) {
+    applyChrome();
+    if (state.tab === "live" && !state.stack.length) {
+      setTitle(t("live"));
+      renderChips();
+    }
     if (!silent) skeleton();
     try {
       const data = await api("/api/live");
       state.live = data.Stages || [];
+      applyChrome();
       if (state.tab === "live" && !state.stack.length) {
+        setTitle(t("live"));
         $("#view").innerHTML = renderStages(state.live, { followedOnly: true, emptyTitle: t("emptyLive") });
       }
     } catch {
@@ -1143,8 +1150,11 @@
         <div class="credit">
           <div class="credit-name">
             <b>Youssef Mansouri</b>
-            <span class="verified" title="Verified">
-              <svg viewBox="0 0 24 24" width="16" height="16"><circle cx="12" cy="12" r="10" fill="#1ee0b0"/><path d="M7.5 12.3l3 3 6-6.2" fill="none" stroke="#06241c" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="verified" title="Verified" aria-label="موثّق">
+              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                <circle cx="12" cy="12" r="11" fill="#1ee0b0"/>
+                <path d="M7.1 12.2l3.2 3.25 6.6-6.75" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
             </span>
           </div>
           <span>${state.lang === "ar" ? "الحقوق محفوظة" : "All rights reserved"}</span>
@@ -1207,13 +1217,19 @@
     const el = $("#toast");
     if (!el) return;
     const show = () => {
-      el.textContent = DHIKR[Math.floor(Math.random() * DHIKR.length)];
+      const phrase = DHIKR[Math.floor(Math.random() * DHIKR.length)];
+      el.innerHTML = `<div class="toast-inner">
+        <span class="toast-ico" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2.2c.35 4.2 3.5 7.35 7.7 7.7-4.2.35-7.35 3.5-7.7 7.7-.35-4.2-3.5-7.35-7.7-7.7 4.2-.35 7.35-3.5 7.7-7.7z"/></svg>
+        </span>
+        <span class="toast-txt">${phrase}</span>
+      </div>`;
       el.classList.add("on");
       clearTimeout(show.hide);
       show.hide = setTimeout(() => el.classList.remove("on"), 5000);
     };
-    setTimeout(show, 8000);
-    setInterval(show, 4 * 60 * 1000);
+    setTimeout(show, 6000);
+    setInterval(show, 3 * 60 * 1000);
   }
 
   function unlockAudio() {
@@ -1311,6 +1327,7 @@
       state.tab = b.dataset.tab;
       state.stack = [];
       state.filter = "all";
+      applyChrome();
       if (state.tab === "live") loadLive();
       else if (state.tab === "matches" && !state.stages.length && state.date) loadDate(state.date);
       else renderPage();
@@ -1329,7 +1346,7 @@
         state.theme = state.theme === "dark" ? "light" : "dark";
         localStorage.setItem("ahdaf-theme", state.theme);
         applyChrome();
-        renderSettings();
+        renderPage();
         return;
       }
       if (e.target.closest("#langToggle")) {
