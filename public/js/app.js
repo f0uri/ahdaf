@@ -70,6 +70,12 @@
       myLeagues: "دورياتي",
       discover: "اكتشف الدوريات",
       friendlies: "المباريات الودية",
+      myTeams: "فرقي",
+      liveNow: "الآن",
+      dhikr: "أذكار",
+      dhikrHint: "تظهر لخمس ثوانٍ أثناء التصفح",
+      followTeam: "متابعة",
+      followingTeam: "متابَع",
       months: ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
       theater: "وضع المشاهدة",
       channels: "أين تشاهد",
@@ -269,6 +275,13 @@
     live: [],
     today: null,
     favLeagues: readFavs(),
+    favTeams: (function () {
+      try {
+        const raw = JSON.parse(localStorage.getItem("ahdaf-fav-t") || "[]");
+        return Array.isArray(raw) ? raw : [];
+      } catch { return []; }
+    })(),
+    dhikr: localStorage.getItem("ahdaf-dhikr") !== "0",
     cache: {},
     liveTimer: null,
   };
@@ -309,8 +322,24 @@
     const blob = `${s.Ccd || s.ccd || ""} ${s.Cnm || s.country || ""} ${s.Snm || s.stage || ""} ${s.Scd || s.scd || ""} ${s.CompN || s.name || ""}`.toLowerCase();
     return blob.includes("friend") || blob.includes("ودي") || (s.Ccd || s.ccd) === "club-friendlies";
   }
+  function isFavTeam(id) {
+    if (id == null || id === "") return false;
+    return state.favTeams.some((x) => String(x.id) === String(id));
+  }
+  function evHasFavTeam(ev) {
+    return isFavTeam(teamOf(ev.T1).id) || isFavTeam(teamOf(ev.T2).id);
+  }
+  function toggleTeam(id, name, img) {
+    if (id == null || id === "") return;
+    const sid = String(id);
+    if (isFavTeam(sid)) state.favTeams = state.favTeams.filter((x) => String(x.id) !== sid);
+    else state.favTeams.unshift({ id: sid, name: name || "", img: img || "" });
+    localStorage.setItem("ahdaf-fav-t", JSON.stringify(state.favTeams));
+  }
   function followedStages(stages) {
-    return (stages || []).filter((s) => isFav(leagueKey(s)) || isFriendly(s));
+    return (stages || []).filter((s) =>
+      isFav(leagueKey(s)) || isFriendly(s) || (s.Events || []).some(evHasFavTeam)
+    );
   }
   function toggleFav(key) {
     if (isFav(key)) state.favLeagues = state.favLeagues.filter((x) => x !== key);
@@ -685,6 +714,9 @@
     if (favFirst) {
       list.sort((a, b) => Number(isFav(leagueKey(b))) - Number(isFav(leagueKey(a))));
     }
+    list.forEach((s) => {
+      s.Events.sort((a, b) => Number(evHasFavTeam(b)) - Number(evHasFavTeam(a)));
+    });
     if (!list.length) {
       if (opts.followedOnly && !state.favLeagues.length) {
         return empty(t("emptyFollow"), t("emptyFollowHint"), `<button class="cta" data-go-tab="leagues">${t("pickLeagues")}</button>`);
@@ -714,10 +746,46 @@
         </section>`;
       })
       .join("");
-    if (opts.followedOnly && state.date) {
-      return `<div class="day-banner sticky">${esc(dayHeading(state.date))}</div>${html}`;
+    let extra = "";
+    if (opts.followedOnly && state.date && state.tab === "matches") {
+      extra += `<div class="day-banner sticky">${esc(dayHeading(state.date))}</div>`;
     }
-    return html;
+    if (opts.followedOnly && state.tab !== "live" && state.filter !== "finished" && state.filter !== "upcoming") {
+      const livePairs = [];
+      for (const s of list) {
+        for (const ev of s.Events) {
+          if (statusOf(ev).kind === "live") livePairs.push({ ev, s });
+        }
+      }
+      livePairs.sort((a, b) => Number(evHasFavTeam(b.ev)) - Number(evHasFavTeam(a.ev)));
+      if (livePairs.length) {
+        extra += `<section class="league live-block">
+          <div class="league-h live-h">
+            <span class="live-dot"></span>
+            <button class="meta"><b>${t("liveNow")}</b><span>${livePairs.length}</span></button>
+          </div>
+          ${livePairs.map(({ ev, s }) => renderMatch(ev, s)).join("")}
+        </section>`;
+      }
+    }
+    if (opts.followedOnly && state.tab === "matches" && state.favTeams.length) {
+      const mine = [];
+      const seen = new Set();
+      for (const s of list) {
+        for (const ev of s.Events) {
+          if (!evHasFavTeam(ev) || seen.has(ev.Eid)) continue;
+          seen.add(ev.Eid);
+          mine.push({ ev, s });
+        }
+      }
+      if (mine.length) {
+        extra += `<section class="league">
+          <div class="league-h"><div class="meta"><b>${t("myTeams")}</b><span>${mine.length}</span></div></div>
+          ${mine.map(({ ev, s }) => renderMatch(ev, s)).join("")}
+        </section>`;
+      }
+    }
+    return extra + html;
   }
 
   async function loadDate(ymd, { silent } = {}) {
@@ -1012,9 +1080,15 @@
       ${hideHero ? "" : `<div class="sheet-card scoreboard">
         <div class="comp">${esc(comp)}${sb.Stg?.Cnm ? " · " + esc(sb.Stg.Cnm) : ""}</div>
         <div class="sb-row">
-          <div class="sb-team">${crest(t1, true)}<div class="nm">${esc(t1.name)}</div></div>
+          <button class="sb-team team-follow ${isFavTeam(t1.id) ? "on" : ""}" data-tid="${esc(t1.id || "")}" data-tname="${esc(t1.name)}" data-timg="${esc(t1.img || "")}">
+            ${crest(t1, true)}<div class="nm">${esc(t1.name)}</div>
+            <span class="follow-hint">${isFavTeam(t1.id) ? "★ " + t("followingTeam") : "☆ " + t("followTeam")}</span>
+          </button>
           <div class="sb-score" dir="ltr">${show ? `${esc(s1)} – ${esc(s2)}` : formatKick(sb.Esd)}</div>
-          <div class="sb-team">${crest(t2, true)}<div class="nm">${esc(t2.name)}</div></div>
+          <button class="sb-team team-follow ${isFavTeam(t2.id) ? "on" : ""}" data-tid="${esc(t2.id || "")}" data-tname="${esc(t2.name)}" data-timg="${esc(t2.img || "")}">
+            ${crest(t2, true)}<div class="nm">${esc(t2.name)}</div>
+            <span class="follow-hint">${isFavTeam(t2.id) ? "★ " + t("followingTeam") : "☆ " + t("followTeam")}</span>
+          </button>
         </div>
         <div class="sb-meta">${st.kind === "live" ? `<span class="live">${esc(st.label)}</span>` : esc(st.label)}</div>
       </div>`}
@@ -1166,6 +1240,13 @@
         <div class="settings-row">
           <div><b>${state.lang === "ar" ? "اللغة" : "Language"}</b></div>
           <button class="chip on" id="langToggle">${t("lang")}</button>
+        </div>
+        <div class="settings-row">
+          <div>
+            <b>${t("dhikr")}</b>
+            <small>${t("dhikrHint")}</small>
+          </div>
+          <button class="toggle ${state.dhikr ? "on" : ""}" id="dhikrToggle"><i></i></button>
         </div>
       </div>
     `;
@@ -1347,6 +1428,20 @@
         localStorage.setItem("ahdaf-theme", state.theme);
         applyChrome();
         renderPage();
+        return;
+      }
+      if (e.target.closest("#dhikrToggle")) {
+        state.dhikr = !state.dhikr;
+        localStorage.setItem("ahdaf-dhikr", state.dhikr ? "1" : "0");
+        renderSettings();
+        return;
+      }
+      const tf = e.target.closest(".team-follow");
+      if (tf?.dataset.tid) {
+        toggleTeam(tf.dataset.tid, tf.dataset.tname, tf.dataset.timg);
+        const page = state.stack[state.stack.length - 1];
+        if (page?.type === "match" && page.data) renderMatchPage(page);
+        else renderPage();
         return;
       }
       if (e.target.closest("#langToggle")) {

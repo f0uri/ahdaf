@@ -13,8 +13,8 @@
   --accent: #1ee0b0;
   --accent-soft: rgba(30, 224, 176, 0.14);
   --blue: #7dd3fc;
-  --live: #1ee0b0;
-  --live-soft: rgba(30, 224, 176, 0.14);
+  --live: #ff453a;
+  --live-soft: rgba(255, 69, 58, 0.16);
   --gold: #f5c16c;
   --overlay: rgba(0, 0, 0, 0.48);
   --tab-bg: rgba(16, 20, 24, 0.78);
@@ -51,8 +51,8 @@ html[data-theme="light"] {
   --accent: #0f9d7a;
   --accent-soft: rgba(15, 157, 122, 0.12);
   --blue: #0284c7;
-  --live: #0f9d7a;
-  --live-soft: rgba(15, 157, 122, 0.12);
+  --live: #ff3b30;
+  --live-soft: rgba(255, 59, 48, 0.12);
   --gold: #ff9f0a;
   --overlay: rgba(0, 0, 0, 0.2);
   --tab-bg: rgba(255, 255, 255, 0.9);
@@ -246,10 +246,10 @@ body {
   color: var(--label);
   letter-spacing: -0.03em;
 }
-.day.on span { color: var(--live); font-weight: 600; }
+.day.on span { color: var(--accent); font-weight: 600; }
 .day.on b {
-  background: var(--live);
-  color: #fff;
+  background: var(--accent);
+  color: var(--ink-on-accent);
 }
 .day:active { opacity: 0.6; }
 
@@ -402,8 +402,48 @@ body {
   background: var(--bg);
 }
 html[data-theme="light"] .pill.y { background: rgba(255, 196, 0, 0.22); color: #8a6400; }
-.mtime.live { color: var(--accent); }
+.mtime.live { color: var(--live); }
 .mtime.ft { color: var(--tertiary); font-weight: 650; }
+.match.is-live { background: var(--live-soft); }
+.mtime .lp {
+  display: inline-block;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--live);
+  margin-inline-end: 3px;
+  vertical-align: 1px;
+  animation: pulse 1.2s ease-out infinite;
+}
+.mside.fav .nm { color: var(--accent); }
+.league.live-block { box-shadow: var(--card-shadow), 0 0 0 0.5px color-mix(in srgb, var(--live) 35%, transparent); }
+.league-h.live-h { background: var(--live-soft); }
+.league-h.live-h .meta b { color: var(--live); }
+.live-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--live);
+  margin-inline-start: 4px;
+  animation: pulse 1.2s ease-out infinite;
+}
+.sb-team.team-follow {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.sb-team .follow-hint {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--secondary);
+}
+.sb-team.team-follow.on .follow-hint { color: var(--gold); }
+.settings-row small {
+  display: block;
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 400;
+  margin-top: 2px;
+}
 .mside {
   display: flex;
   align-items: center;
@@ -959,7 +999,7 @@ html[dir="ltr"] .toggle.on i { transform: translateX(20px); }
   min-height: 220px;
 }
 html[data-theme="light"] .theater {
-  background: radial-gradient(120% 80% at 50% 0%, #e8f6ea 0%, #111 62%, #000 100%);
+  background: radial-gradient(120% 80% at 50% 0%, #163328 0%, #0b0f12 58%, #050607 100%);
 }
 .theater-glow {
   position: absolute;
