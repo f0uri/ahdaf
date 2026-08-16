@@ -61,8 +61,14 @@
       error: "تعذّر جلب البيانات",
       follow: "متابعة",
       following: "متابَع",
-      watch: "البث",
-      watchLive: "مشاهدة مباشرة",
+      watch: "المتابعة",
+      watchLive: "متابعة حية",
+      more: "المزيد",
+      emptyFollow: "لم تتابع أي دوري بعد",
+      emptyFollowHint: "اختر دورياتك من تبويب الدوريات، وستظهر مبارياتها هنا فقط.",
+      pickLeagues: "اختيار الدوريات",
+      myLeagues: "دورياتي",
+      discover: "اكتشف الدوريات",
       theater: "وضع المشاهدة",
       channels: "أين تشاهد",
       officialStream: "بث رسمي",
@@ -145,8 +151,14 @@
       error: "Could not load data",
       follow: "Follow",
       following: "Following",
-      watch: "Watch",
-      watchLive: "Watch live",
+      watch: "Feed",
+      watchLive: "Live feed",
+      more: "More",
+      emptyFollow: "You’re not following any league",
+      emptyFollowHint: "Pick leagues in the Leagues tab. Only those matches will appear here.",
+      pickLeagues: "Choose leagues",
+      myLeagues: "My leagues",
+      discover: "Discover",
       theater: "Watch mode",
       channels: "Where to watch",
       officialStream: "Official stream",
@@ -223,17 +235,17 @@
     document.documentElement.lang = state.lang;
     document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr";
     document.documentElement.dataset.theme = state.theme;
-    const themeColor = state.theme === "dark" ? "#000000" : "#F2F2F7";
+    const themeColor = state.theme === "dark" ? "#0B0F12" : "#F2F2F7";
     document.querySelector('meta[name="theme-color"]').setAttribute("content", themeColor);
     const bar = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
     if (bar) bar.setAttribute("content", state.theme === "dark" ? "black-translucent" : "default");
     $("#searchInput").placeholder = t("search");
-    const labels = { matches: t("matches"), live: t("live"), leagues: t("leagues"), favorites: t("favorites") };
+    const labels = { matches: t("matches"), live: t("live"), leagues: t("leagues"), more: t("more") };
     $$(".tab").forEach((b) => {
       b.querySelector("span").textContent = labels[b.dataset.tab];
       b.classList.toggle("on", b.dataset.tab === state.tab && !state.stack.length);
     });
-    const n = (state.live || []).reduce((a, s) => a + (s.Events || []).length, 0);
+    const n = followedStages(state.live || []).reduce((a, s) => a + (s.Events || []).length, 0);
     const dot = $("#liveDot");
     if (dot) {
       dot.textContent = n > 99 ? "99" : String(n);
@@ -246,6 +258,9 @@
   }
   function isFav(key) {
     return state.favLeagues.includes(key);
+  }
+  function followedStages(stages) {
+    return (stages || []).filter((s) => isFav(leagueKey(s)));
   }
   function toggleFav(key) {
     if (isFav(key)) state.favLeagues = state.favLeagues.filter((x) => x !== key);
@@ -565,7 +580,7 @@
   function renderStages(stages, opts = {}) {
     const q = state.q.toLowerCase();
     const favFirst = opts.favFirst;
-    let list = (stages || [])
+    let list = (opts.followedOnly ? followedStages(stages) : stages || [])
       .map((s) => ({ ...s, Events: (s.Events || []).filter(matchPasses) }))
       .filter((s) => {
         if (s.Events.length) return true;
@@ -582,6 +597,12 @@
       list.sort((a, b) => Number(isFav(leagueKey(b))) - Number(isFav(leagueKey(a))));
     }
     if (!list.length) {
+      if (opts.followedOnly && !state.favLeagues.length) {
+        return empty(t("emptyFollow"), t("emptyFollowHint"), `<button class="cta" data-go-tab="leagues">${t("pickLeagues")}</button>`);
+      }
+      if (opts.followedOnly) {
+        return empty(opts.emptyTitle || t("emptyDay"), t("emptyFollowHint"));
+      }
       return empty(opts.emptyTitle || t("emptyDay"), opts.emptySub || "");
     }
     return list
@@ -618,7 +639,7 @@
       state.cache["d:" + ymd] = { t: Date.now(), v: data };
       state.stages = data.Stages || [];
       if (state.tab === "matches" && !state.stack.length) {
-        $("#view").innerHTML = renderStages(state.stages, { favFirst: true });
+        $("#view").innerHTML = renderStages(state.stages, { followedOnly: true });
       }
     } catch {
       $("#view").innerHTML = empty(t("error"), "", `<button class="chip on" id="retry">${t("retry")}</button>`);
@@ -631,7 +652,7 @@
       const data = await api("/api/live");
       state.live = data.Stages || [];
       if (state.tab === "live" && !state.stack.length) {
-        $("#view").innerHTML = renderStages(state.live, { emptyTitle: t("emptyLive") });
+        $("#view").innerHTML = renderStages(state.live, { followedOnly: true, emptyTitle: t("emptyLive") });
       }
     } catch {
       if (state.tab === "live") $("#view").innerHTML = empty(t("error"));
@@ -640,10 +661,20 @@
 
   function renderLeagues() {
     const q = state.q.toLowerCase();
-    const feats = state.featured.filter((f) => {
-      if (!q) return true;
-      return `${f.name} ${f.nameAr} ${f.country} ${f.countryAr}`.toLowerCase().includes(q);
-    });
+    const mine = state.featured.filter((f) => isFav(`${f.ccd}/${f.scd}/${f.CompId}`));
+    const rest = state.featured.filter((f) => !isFav(`${f.ccd}/${f.scd}/${f.CompId}`));
+    const filt = (arr) => arr.filter((f) => !q || `${f.name} ${f.nameAr} ${f.country} ${f.countryAr}`.toLowerCase().includes(q));
+    const card = (f) => {
+      const key = `${f.ccd}/${f.scd}/${f.CompId}`;
+      return `<div class="feat-wrap">
+        <button class="feat league-open" data-ccd="${esc(f.ccd)}" data-scd="${esc(f.scd)}" data-cid="${esc(f.CompId)}" data-name="${esc(state.lang === "ar" ? f.nameAr : f.name)}">
+          ${flag(f.flag === "gb-eng" ? "england" : f.ccd)}
+          <b>${esc(state.lang === "ar" ? f.nameAr : f.name)}</b>
+          <span>${esc(state.lang === "ar" ? f.countryAr : f.country)}</span>
+        </button>
+        <button class="star ${isFav(key) ? "on" : ""}" data-key="${esc(key)}">★</button>
+      </div>`;
+    };
     const cats = state.countries
       .filter((c) => !q || `${c.name} ${c.nameAr} ${c.ccd}`.toLowerCase().includes(q))
       .sort((a, b) => (state.lang === "ar" ? a.nameAr : a.name).localeCompare(state.lang === "ar" ? b.nameAr : b.name, state.lang));
@@ -658,18 +689,10 @@
       )
       .join("");
     $("#view").innerHTML = `
-      <div class="section-t">${t("featured")}</div>
-      <div class="featured">
-        ${feats
-          .map(
-            (f) => `<button class="feat league-open" data-ccd="${esc(f.ccd)}" data-scd="${esc(f.scd)}" data-cid="${esc(f.CompId)}" data-name="${esc(state.lang === "ar" ? f.nameAr : f.name)}">
-              ${flag(f.flag === "gb-eng" ? "england" : f.ccd)}
-              <b>${esc(state.lang === "ar" ? f.nameAr : f.name)}</b>
-              <span>${esc(state.lang === "ar" ? f.countryAr : f.country)}</span>
-            </button>`
-          )
-          .join("")}
-      </div>
+      <div class="section-t">${t("myLeagues")}</div>
+      <div class="featured">${filt(mine).map(card).join("") || `<div class="empty" style="padding:24px 12px"><p>${t("emptyFollowHint")}</p></div>`}</div>
+      <div class="section-t">${t("discover")}</div>
+      <div class="featured">${filt(rest).map(card).join("")}</div>
       <div class="section-t">${t("countries")}</div>
       <div class="list-wrap">${catsHtml || empty(t("emptyDay"))}</div>
     `;
@@ -874,8 +897,10 @@
       : `<div class="empty"><p>${t("noEvents")}</p></div>`;
 
     return `
-      ${renderOfficialApps(sb)}
       <div class="theater compact">
+        <div class="theater-top">
+          ${st.kind === "live" ? `<span class="live-pill"><i></i>${esc(t("live"))} ${esc(st.label)}</span>` : `<span class="live-pill dim">${esc(st.label)}</span>`}
+        </div>
         <div class="theater-score">
           <div class="th-team">${crest(t1, true)}<b>${esc(t1.name)}</b></div>
           <div class="th-nums" id="watchNums">${show ? `${esc(s1)}<span>–</span>${esc(s2)}` : formatKick(sb.Esd)}</div>
@@ -884,7 +909,6 @@
       </div>
       <div class="section-t">${t("lastEvent")}</div>
       <div class="sheet-card ticker" id="watchTicker">${events}</div>
-      ${renderBroadcast(sb)}
     `;
   }
 
@@ -1159,18 +1183,18 @@
         renderDates();
         renderChips();
         $("#view").innerHTML = state.stages.length
-          ? renderStages(state.stages, { favFirst: true })
+          ? renderStages(state.stages, { followedOnly: true })
           : empty(t("emptyDay"));
       } else if (state.tab === "live") {
         setTitle(t("live"));
         renderChips();
-        $("#view").innerHTML = renderStages(state.live, { emptyTitle: t("emptyLive") });
+        $("#view").innerHTML = renderStages(state.live, { followedOnly: true, emptyTitle: t("emptyLive") });
       } else if (state.tab === "leagues") {
         setTitle(t("leagues"));
         renderLeagues();
       } else {
-        setTitle(t("favorites"));
-        renderFavorites();
+        setTitle(t("more"));
+        renderSettings();
       }
       return;
     }
@@ -1222,11 +1246,7 @@
   }
 
   function bind() {
-    $("#backBtn").addEventListener("click", () => {
-      if (!$("#viewer")?.classList.contains("hidden")) return closeViewer();
-      pop();
-    });
-    $("#viewerClose")?.addEventListener("click", closeViewer);
+    $("#backBtn").addEventListener("click", pop);
     $("#searchBtn").addEventListener("click", () => {
       state.searchOpen = !state.searchOpen;
       $("#searchWrap").classList.toggle("hidden", !state.searchOpen);
@@ -1264,10 +1284,11 @@
       else renderPage();
     });
     $("#view").addEventListener("click", (e) => {
-      const off = e.target.closest("[data-open-official]");
-      if (off) {
-        e.preventDefault();
-        openOfficialInApp(off.dataset.openOfficial, off.dataset.openName);
+      const go = e.target.closest("[data-go-tab]");
+      if (go) {
+        state.tab = go.dataset.goTab;
+        state.stack = [];
+        renderPage();
         return;
       }
       if (e.target.closest("#retry")) return loadDate(state.date);
