@@ -134,7 +134,7 @@
       });
     const Browser = window.Capacitor?.Plugins?.Browser;
     if (Browser?.open) await Browser.open({ url });
-    else window.location.href = url;
+    else throw new Error("no-browser");
     const back = await waitRedirect();
     try { await Browser?.close?.(); } catch {}
     const u = new URL(back.replace("app.ahdaf.scores://", "https://local/"));

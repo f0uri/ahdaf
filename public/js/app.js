@@ -89,6 +89,7 @@
       account: "الحساب",
       signOut: "تسجيل الخروج",
       googleSoon: "حفظ السحابة عبر Google Play يحتاج إعداد المطوّر. حُفظ حسابك على هذا الجهاز.",
+      googleFail: "تعذّر الدخول بجوجل. استخدم الزائر أو أضف بريدك كمستخدم تجريبي.",
       ameen: "آمين",
       remembrance: "ذكر",
       followHint: "تابع فرقك لتظهر أولاً في الرئيسية.",
@@ -203,6 +204,7 @@
       account: "Account",
       signOut: "Sign out",
       googleSoon: "Play cloud save needs a developer Google client. Your profile is stored on this device.",
+      googleFail: "Google sign-in failed. Try guest, or add your Gmail as a test user.",
       ameen: "Ameen",
       remembrance: "Remembrance",
       followHint: "Follow your clubs so they appear first on Home.",
@@ -339,6 +341,7 @@
     dhikr: localStorage.getItem("ahdaf-dhikr") !== "0",
     cache: {},
     liveTimer: null,
+    cloudToken: localStorage.getItem("ahdaf-gtoken") || "",
   };
 
   const t = (k) => (I18N[state.lang] && I18N[state.lang][k]) || k;
@@ -1508,43 +1511,60 @@
       try { await window.AhdafCloud.push(state.cloudToken, snapshot()); } catch {}
     }, 700);
   }
+  function flash(msg) {
+    const toast = $("#toast");
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add("on");
+    setTimeout(() => toast.classList.remove("on"), 4200);
+  }
   async function enterWithGoogle() {
     tap();
-    if (!window.AhdafCloud?.ready()) {
-      const toast = $("#toast");
-      if (toast) {
-        toast.textContent = t("googleSoon");
-        toast.classList.add("on");
-        setTimeout(() => toast.classList.remove("on"), 5000);
-      }
-      return;
-    }
+    const plugin = window.Capacitor?.Plugins?.GoogleAuth;
     try {
-      const session = await window.AhdafCloud.signIn();
-      state.cloudToken = session.access;
-      localStorage.setItem("ahdaf-gtoken", session.access);
+      let session = null;
+      if (plugin && plugin.signIn) {
+        const user = await plugin.signIn();
+        const access = user?.authentication?.accessToken || user?.accessToken || "";
+        session = {
+          access,
+          profile: {
+            id: "g:" + (user.id || user.email || "user"),
+            name: user.name || user.displayName || "Google",
+            email: user.email || "",
+            mode: "google",
+          },
+        };
+      } else if (!isNative() && window.AhdafCloud?.ready()) {
+        session = await window.AhdafCloud.signIn();
+      } else {
+        flash(t("googleFail"));
+        return;
+      }
+      state.cloudToken = session.access || "";
+      if (session.access) localStorage.setItem("ahdaf-gtoken", session.access);
       persistAuth(session.profile);
-      try {
-        const remote = await window.AhdafCloud.pull(session.access);
-        if (remote) applyRemote(remote);
-        else await window.AhdafCloud.push(session.access, snapshot());
-      } catch {}
+      if (session.access && window.AhdafCloud) {
+        try {
+          const remote = await window.AhdafCloud.pull(session.access);
+          if (remote) applyRemote(remote);
+          else await window.AhdafCloud.push(session.access, snapshot());
+        } catch {}
+      }
       $("#authLayer")?.classList.add("hidden");
       applyChrome();
       renderPage();
       startDhikr();
     } catch (e) {
-      const toast = $("#toast");
-      if (toast) {
-        toast.textContent = t("googleSoon");
-        toast.classList.add("on");
-        setTimeout(() => toast.classList.remove("on"), 5000);
-      }
+      flash(t("googleFail"));
     }
   }
   function signOut() {
     persistAuth(null);
+    state.stack = [];
+    state.tab = "matches";
     $("#authLayer")?.classList.remove("hidden");
+    applyChrome();
   }
 
   function bind() {
@@ -1609,6 +1629,11 @@
         return;
       }
       if (e.target.closest("#retry")) return loadDate(state.date);
+      if (e.target.closest("#signOutBtn")) {
+        tap();
+        signOut();
+        return;
+      }
       if (e.target.closest("#themeToggle")) {
         state.theme = state.theme === "dark" ? "light" : "dark";
         localStorage.setItem("ahdaf-theme", state.theme);
