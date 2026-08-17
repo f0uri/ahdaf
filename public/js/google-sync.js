@@ -16,6 +16,13 @@
   function ready() {
     return !!clientId();
   }
+  function isNative() {
+    try {
+      return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+    } catch {
+      return false;
+    }
+  }
 
   function randomStr(n = 48) {
     const a = new Uint8Array(n);
@@ -28,8 +35,31 @@
     return btoa(b).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
   }
 
+  // Web OAuth clients only accept http(s). This matches the Cloud Console URI.
   function redirectUri() {
-    return "app.ahdaf.scores://oauth";
+    return "https://localhost";
+  }
+
+  function parseOauthUrl(raw) {
+    const url = String(raw || "");
+    if (!url) return { code: "", error: "" };
+    try {
+      const normalized = url
+        .replace(/^app\.ahdaf\.scores:\/\//i, "https://ahdaf.local/")
+        .replace(/^app\.ahdaf\.scores:/i, "https://ahdaf.local/");
+      const u = new URL(normalized);
+      return {
+        code: u.searchParams.get("code") || "",
+        error: u.searchParams.get("error") || "",
+      };
+    } catch {
+      const code = (url.match(/[?&#]code=([^&#]+)/) || [])[1] || "";
+      const error = (url.match(/[?&#]error=([^&#]+)/) || [])[1] || "";
+      return {
+        code: decodeURIComponent(code),
+        error: decodeURIComponent(error),
+      };
+    }
   }
 
   async function httpJson(method, url, { headers = {}, body, raw } = {}) {
@@ -75,48 +105,106 @@
     return r.data;
   }
 
-  async function pluginSignIn() {
-    const plugin = window.Capacitor?.Plugins?.GoogleAuth;
-    if (!plugin?.signIn) return null;
-    const user = await plugin.signIn();
-    const access = user?.authentication?.accessToken || user?.accessToken;
-    if (!access) return null;
+  function sessionFromProfile(access, refresh, me) {
     return {
       access,
-      refresh: user?.authentication?.refreshToken || "",
+      refresh: refresh || "",
       profile: {
-        id: "g:" + (user.id || user.email),
-        name: user.name || user.displayName || "Google",
-        email: user.email || "",
-        picture: user.imageUrl || "",
+        id: "g:" + (me.sub || me.id || me.email),
+        name: me.name || "Google",
+        email: me.email || "",
+        picture: me.picture || "",
         mode: "google",
       },
     };
   }
 
-  function waitRedirect() {
-    return new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error("timeout")), 180000);
-      const done = (url) => {
-        clearTimeout(t);
-        resolve(url);
-      };
-      const App = window.Capacitor?.Plugins?.App;
-      if (App?.addListener) {
-        const sub = App.addListener("appUrlOpen", (e) => {
-          if (String(e?.url || "").startsWith("app.ahdaf.scores://")) {
-            sub.remove?.();
-            done(e.url);
-          }
-        });
+  function consumeLocationCode() {
+    try {
+      const parsed = parseOauthUrl(location.href);
+      if (parsed.code || parsed.error) {
+        history.replaceState({}, "", location.pathname || "/");
+        return parsed;
       }
-      window.__ahdafOauth = (url) => done(url);
+    } catch {}
+    return null;
+  }
+
+  let lastOauth = consumeLocationCode();
+  try {
+    const App = window.Capacitor?.Plugins?.App;
+    const sub = App?.addListener?.("appUrlOpen", (e) => {
+      const parsed = parseOauthUrl(e?.url);
+      if (parsed.code || parsed.error) {
+        lastOauth = parsed;
+        window.__ahdafOauth?.(e.url);
+      }
+    });
+    if (sub?.then) sub.catch(() => {});
+  } catch {}
+
+  function waitRedirect() {
+    if (lastOauth?.code || lastOauth?.error) {
+      const got = lastOauth;
+      lastOauth = null;
+      return Promise.resolve(got);
+    }
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const handles = [];
+      const poll = setInterval(() => {
+        const here = consumeLocationCode();
+        if (here?.code || here?.error) finish(here);
+      }, 350);
+      const timer = setTimeout(() => finish(null, new Error("timeout")), 180000);
+
+      function finish(value, err) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        clearInterval(poll);
+        handles.forEach((h) => {
+          try { h.remove?.(); } catch {}
+        });
+        window.__ahdafOauth = null;
+        if (err) reject(err);
+        else resolve(value);
+      }
+
+      window.__ahdafOauth = (url) => {
+        const parsed = typeof url === "string" ? parseOauthUrl(url) : url;
+        if (parsed?.code || parsed?.error) finish(parsed);
+      };
+
+      const App = window.Capacitor?.Plugins?.App;
+      const Browser = window.Capacitor?.Plugins?.Browser;
+      try {
+        const sub = App?.addListener?.("appUrlOpen", (e) => {
+          const parsed = parseOauthUrl(e?.url);
+          if (parsed.code || parsed.error) finish(parsed);
+        });
+        if (sub?.then) sub.then((h) => handles.push(h));
+        else if (sub) handles.push(sub);
+      } catch {}
+      try {
+        const sub = Browser?.addListener?.("browserFinished", () => {
+          setTimeout(() => {
+            if (!settled) finish(null, new Error("closed"));
+          }, 500);
+        });
+        if (sub?.then) sub.then((h) => handles.push(h));
+        else if (sub) handles.push(sub);
+      } catch {}
     });
   }
 
   async function browserSignIn() {
     const id = clientId();
-    if (!id) throw new Error("no-client");
+    if (!id) {
+      const err = new Error("no-client");
+      err.code = "no-client";
+      throw err;
+    }
     const verifier = randomStr(64);
     const challenge = await sha256b64url(verifier);
     const url =
@@ -132,27 +220,31 @@
         prompt: "select_account",
         include_granted_scopes: "true",
       });
+
     const Browser = window.Capacitor?.Plugins?.Browser;
-    if (Browser?.open) await Browser.open({ url });
-    else throw new Error("no-browser");
-    const back = await waitRedirect();
-    try { await Browser?.close?.(); } catch {}
-    const u = new URL(back.replace("app.ahdaf.scores://", "https://local/"));
-    const code = u.searchParams.get("code");
-    if (!code) throw new Error("no-code");
-    const tok = await exchangeCode(code, verifier);
+    if (!isNative() || !Browser?.open) {
+      const err = new Error("no-browser");
+      err.code = "no-browser";
+      throw err;
+    }
+
+    await Browser.open({
+      url,
+      presentationStyle: "popover",
+      toolbarColor: "#07090c",
+    });
+
+    let parsed;
+    try {
+      parsed = await waitRedirect();
+    } finally {
+      try { await Browser.close?.(); } catch {}
+    }
+    if (parsed?.error) throw new Error(parsed.error);
+    if (!parsed?.code) throw new Error("no-code");
+    const tok = await exchangeCode(parsed.code, verifier);
     const me = await userInfo(tok.access_token);
-    return {
-      access: tok.access_token,
-      refresh: tok.refresh_token || "",
-      profile: {
-        id: "g:" + (me.sub || me.email),
-        name: me.name || "Google",
-        email: me.email || "",
-        picture: me.picture || "",
-        mode: "google",
-      },
-    };
+    return sessionFromProfile(tok.access_token, tok.refresh_token, me);
   }
 
   async function signIn() {
@@ -161,10 +253,8 @@
       err.code = "no-client";
       throw err;
     }
-    try {
-      const viaPlugin = await pluginSignIn();
-      if (viaPlugin) return viaPlugin;
-    } catch {}
+    // Do not call Capacitor GoogleAuth.signIn — 3.4.0-rc.4 crashes the
+    // process with NPE when the native client was never initialized.
     return browserSignIn();
   }
 

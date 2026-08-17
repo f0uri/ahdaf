@@ -10,9 +10,11 @@
       "enabled": true
     },
     "GoogleAuth": {
-      "scopes": ["profile", "email", "https://www.googleapis.com/auth/drive.appdata"],
+      "scopes": ["profile", "email"],
       "serverClientId": "965355836624-gpp8n1ijkrh57invn56s5scu9325fbjc.apps.googleusercontent.com",
-      "forceCodeForRefreshToken": true
+      "androidClientId": "965355836624-gpp8n1ijkrh57invn56s5scu9325fbjc.apps.googleusercontent.com",
+      "clientId": "965355836624-gpp8n1ijkrh57invn56s5scu9325fbjc.apps.googleusercontent.com",
+      "forceCodeForRefreshToken": false
     },
     "SplashScreen": {
       "launchShowDuration": 0

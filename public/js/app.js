@@ -90,6 +90,7 @@
       signOut: "تسجيل الخروج",
       googleSoon: "حفظ السحابة عبر Google Play يحتاج إعداد المطوّر. حُفظ حسابك على هذا الجهاز.",
       googleFail: "تعذّر الدخول بجوجل. استخدم الزائر أو أضف بريدك كمستخدم تجريبي.",
+      googleWait: "أكمل تسجيل الدخول في نافذة Google…",
       ameen: "آمين",
       remembrance: "ذكر",
       followHint: "تابع فرقك لتظهر أولاً في الرئيسية.",
@@ -205,6 +206,7 @@
       signOut: "Sign out",
       googleSoon: "Play cloud save needs a developer Google client. Your profile is stored on this device.",
       googleFail: "Google sign-in failed. Try guest, or add your Gmail as a test user.",
+      googleWait: "Finish signing in with Google…",
       ameen: "Ameen",
       remembrance: "Remembrance",
       followHint: "Follow your clubs so they appear first on Home.",
@@ -1323,7 +1325,7 @@
             <b>${t("account")}</b>
             <small>${esc(state.auth?.name || t("guest"))}${state.auth?.email ? " · " + esc(state.auth.email) : ""}</small>
           </div>
-          ${state.auth ? `<button class="chip" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on" id="authGoogle">${t("googleBtn")}</button>`}
+          ${state.auth ? `<button class="chip" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on auth-google mini" id="authGoogle"><span class="g-logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.97 6.97 0 0 1 5.48 12c0-.72.12-1.43.36-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span><span>${t("googleBtn")}</span></button>`}
         </div>
         <div class="settings-row">
           <div><b>${t("dark")}</b></div>
@@ -1518,26 +1520,38 @@
     toast.classList.add("on");
     setTimeout(() => toast.classList.remove("on"), 4200);
   }
+  function setAuthCopy() {
+    const lead = $("#authLead");
+    const note = $("#authNote");
+    const guest = $("#authGuest");
+    const label = $("#authGoogleLabel");
+    if (lead) lead.textContent = t("authLead");
+    if (note) note.textContent = t("authNote");
+    if (guest) guest.textContent = t("guestBtn");
+    if (label) label.textContent = t("googleBtn");
+  }
+  function setGoogleBusy(on) {
+    const btn = $("#authGoogle");
+    if (!btn) return;
+    btn.classList.toggle("busy", !!on);
+    btn.disabled = !!on;
+    const label = $("#authGoogleLabel") || btn.querySelector("span:last-child");
+    if (label) label.textContent = on ? t("googleWait") : t("googleBtn");
+  }
   async function enterWithGoogle() {
     tap();
-    const plugin = window.Capacitor?.Plugins?.GoogleAuth;
+    if (enterWithGoogle.busy) return;
+    enterWithGoogle.busy = true;
+    setGoogleBusy(true);
     try {
-      let session = null;
-      if (plugin && plugin.signIn) {
-        const user = await plugin.signIn();
-        const access = user?.authentication?.accessToken || user?.accessToken || "";
-        session = {
-          access,
-          profile: {
-            id: "g:" + (user.id || user.email || "user"),
-            name: user.name || user.displayName || "Google",
-            email: user.email || "",
-            mode: "google",
-          },
-        };
-      } else if (!isNative() && window.AhdafCloud?.ready()) {
-        session = await window.AhdafCloud.signIn();
-      } else {
+      if (!window.AhdafCloud?.ready?.()) {
+        flash(t("googleFail"));
+        return;
+      }
+      // Do not call Capacitor.Plugins.GoogleAuth.signIn — it null-derefs
+      // and kills the APK when initialize() was never run.
+      const session = await window.AhdafCloud.signIn();
+      if (!session?.profile) {
         flash(t("googleFail"));
         return;
       }
@@ -1556,13 +1570,21 @@
       renderPage();
       startDhikr();
     } catch (e) {
-      flash(t("googleFail"));
+      if (String(e?.message || e) !== "closed" && String(e?.message || e) !== "timeout") {
+        flash(t("googleFail"));
+      } else {
+        flash(t("googleFail"));
+      }
+    } finally {
+      enterWithGoogle.busy = false;
+      setGoogleBusy(false);
     }
   }
   function signOut() {
     persistAuth(null);
     state.stack = [];
     state.tab = "matches";
+    setAuthCopy();
     $("#authLayer")?.classList.remove("hidden");
     applyChrome();
   }
@@ -1632,6 +1654,10 @@
       if (e.target.closest("#signOutBtn")) {
         tap();
         signOut();
+        return;
+      }
+      if (e.target.closest("#authGoogle")) {
+        enterWithGoogle();
         return;
       }
       if (e.target.closest("#themeToggle")) {
@@ -1723,10 +1749,7 @@
       applyChrome();
       bind();
       if (!state.auth) {
-        $("#authLead") && ($("#authLead").textContent = t("authLead"));
-        $("#authNote") && ($("#authNote").textContent = t("authNote"));
-        $("#authGoogle") && ($("#authGoogle").textContent = t("googleBtn"));
-        $("#authGuest") && ($("#authGuest").textContent = t("guestBtn"));
+        setAuthCopy();
         $("#authLayer")?.classList.remove("hidden");
       }
       skeleton();
