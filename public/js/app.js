@@ -735,8 +735,9 @@
       <div class="grant-top">
         ${avatarHTML(u, "lg")}
         <div class="grant-pills">
-          <span class="grant-pill handle">@${esc(u.handle)}</span>
+          <span class="grant-pill handle" dir="ltr">@${esc(u.handle)}</span>
           <span class="grant-pill name">${esc(u.name || "—")}</span>
+          ${u.email ? `<span class="grant-pill mail" dir="ltr">${esc(u.email)}</span>` : ""}
         </div>
       </div>
       <div class="grant-when">
@@ -1876,23 +1877,12 @@
           <button type="button" class="ava-btn" id="pickPhotoBtn" aria-label="${esc(state.auth?.picture ? t("changePhoto") : t("addPhoto"))}">${avatarHTML(state.auth, "lg")}</button>
           <div>
             <div class="credit-name"><b>${esc(state.auth?.name || t("guest"))}</b>${state.auth && state.auth.mode !== "guest" && window.AhdafSecure?.isVerified?.(state.auth) ? verifiedBadge(18) : ""}</div>
-            <small>${state.auth?.handle ? "@" + esc(state.auth.handle) : t("guest")}${isOwner() ? " · " + t("adminMark") : ""}</small>
+            <small>${state.auth?.handle ? `<span dir="ltr">@${esc(state.auth.handle)}</span>` : t("guest")}${isOwner() ? " · " + t("adminMark") : ""}</small>
             ${state.auth && state.auth.mode !== "guest" ? `<button type="button" class="photo-link" id="pickPhotoTxt">${state.auth.picture ? t("changePhoto") : t("addPhoto")}</button>${state.auth.picture ? ` · <button type="button" class="photo-link dim" id="removePhotoBtn">${t("removePhoto")}</button>` : ""}` : ""}
           </div>
         </div>
         ${state.auth ? `<button class="ghost-btn" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on auth-google mini" id="authGoogle"><span class="g-logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.97 6.97 0 0 1 5.48 12c0-.72.12-1.43.36-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span><span>${t("googleBtn")}</span></button>`}
       </section>
-      ${accs.length ? `<section class="sheet-card glass switch-dock">
-        <div class="club-kicker">${t("accounts")}</div>
-        <div class="switch-rail">
-          ${accs.map((a) => `<button type="button" class="switch-card ${a.id === state.auth?.id ? "on" : ""}" data-switch="${esc(a.id)}">
-            ${avatarHTML(a)}
-            <b>${esc(a.name || a.handle || t("account"))}</b>
-            <small>${a.id === state.auth?.id ? t("currentAcc") : (a.handle ? "@" + esc(a.handle) : t("switchAcc"))}</small>
-          </button>`).join("")}
-          <button type="button" class="switch-card add" id="addAccBtn"><span class="acc-ava">+</span><b>${t("addAcc")}</b></button>
-        </div>
-      </section>` : ""}
       <div class="sheet-card glass about-card">
         <div class="credit">
           <div class="credit-name">
@@ -2387,7 +2377,7 @@
         badge: stored?.badge || cloud?.badge || "teal",
         seal: stored?.seal || "",
         role: stored?.role || "",
-        picture: stored?.picture || "",
+        picture: stored?.picture || cloud?.picture || "",
         verified: !!(stored?.verified || cloud?.verified),
         createdAt: stored?.createdAt || cloud?.createdAt || Date.now(),
       };
@@ -2466,6 +2456,7 @@
       try {
         const data = await compressPhoto(file);
         await persistAuth({ ...state.auth, picture: data });
+        cloudPushSoon();
         applyChrome();
         if (state.tab === "more" || state.stack[state.stack.length - 1]?.type === "settings") renderSettings();
         flash(t("savedOk"));
@@ -2563,6 +2554,7 @@
       }
       if (e.target.closest("#removePhotoBtn")) {
         persistAuth({ ...state.auth, picture: "" }).then(() => {
+          cloudPushSoon();
           applyChrome();
           renderSettings();
           flash(t("savedOk"));
@@ -2597,13 +2589,7 @@
         const box = $("#grantBox");
         if (!box) return;
         if (!found?.handle) { box.innerHTML = `<p class="field-err">${t("grantMiss")}</p>`; return; }
-        box.innerHTML = `<div class="grant-card">
-          <div>
-            <b>${esc(found.name || "—")}</b>
-            <div class="grant-meta">${t("nameLab")}: ${esc(found.name || "—")}<br>@${esc(found.handle)}${found.email ? "<br>" + esc(found.email) : ""}${found.missing ? "<br>" + t("grantMiss") : ""}</div>
-          </div>
-          <button type="button" data-grant="${esc(found.handle)}" data-on="${found.granted ? "0" : "1"}">${found.granted ? t("grantOff") : t("grantOn")}</button>
-        </div>`;
+        box.innerHTML = grantCardHTML(found);
         return;
       }
       const gb = e.target.closest("[data-grant]");

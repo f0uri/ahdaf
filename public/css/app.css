@@ -1641,7 +1641,7 @@ html[data-theme="light"] .switch-dock {
 .studio-who { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .studio-who small { color: var(--secondary); font-size: 12px; }
 .acc-ava {
-  width: 40px; height: 40px; border-radius: 14px;
+  width: 40px; height: 40px; border-radius: 50%;
   display: grid; place-items: center;
   background: linear-gradient(160deg, #1ee0b0, #0f766e);
   color: #06241c;
@@ -1652,8 +1652,8 @@ html[data-theme="light"] .switch-dock {
   background: transparent;
   box-shadow: inset 0 0 0 1.4px var(--hairline);
 }
-.acc-ava.lg { width: 56px; height: 56px; border-radius: 20px; font-size: 22px; }
-.acc-ava.sm { width: 22px; height: 22px; border-radius: 8px; font-size: 11px; }
+.acc-ava.lg { width: 64px; height: 64px; border-radius: 50%; font-size: 22px; }
+.acc-ava.sm { width: 22px; height: 22px; border-radius: 50%; font-size: 11px; }
 .acc-ava.has-img { overflow: hidden; padding: 0; background: #111; }
 .acc-ava img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ava-btn {
@@ -1859,6 +1859,11 @@ html[data-theme="light"] .grant-pill {
 }
 .grant-btn.off {
   background: #ff453a;
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(255, 69, 58, 0.26);
+}
+.grant-btn:active { transform: scale(0.98); }
+ound: #ff453a;
   color: #fff;
   box-shadow: 0 10px 24px rgba(255, 69, 58, 0.26);
 }
