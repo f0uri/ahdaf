@@ -162,10 +162,17 @@ body {
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--label);
-  max-width: 220px;
+  max-width: 160px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.userline-handle {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--secondary);
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 .userline-badge {
   display: grid;
@@ -1282,6 +1289,15 @@ html[dir="ltr"] .about ul { padding: 0 0 0 18px; }
   display: block;
   margin: 0 0 10px;
 }
+.field-lab {
+  display: block;
+  text-align: start;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.55);
+  margin: 0 4px 6px;
+}
+html[data-theme="light"] .verify-card .field-lab { color: var(--secondary); }
 .auth-field input,
 .verify-field input {
   width: 100%;
@@ -1294,14 +1310,33 @@ html[dir="ltr"] .about ul { padding: 0 0 0 18px; }
   font-weight: 650;
   padding: 15px 16px;
   outline: none;
-  text-align: center;
+  text-align: start;
+  box-shadow: inset 0 0 0 1px transparent;
 }
 .auth-field input::placeholder,
-.verify-field input::placeholder { color: rgba(255,255,255,0.38); }
-html[data-theme="light"] .verify-field input {
+.verify-field input::placeholder { color: rgba(255,255,255,0.34); }
+html[data-theme="light"] .verify-field input,
+html[data-theme="light"] .auth-field input {
   background: var(--fill);
   color: var(--label);
 }
+html[data-theme="light"] .verify-field input::placeholder,
+html[data-theme="light"] .auth-field input::placeholder {
+  color: var(--tertiary);
+}
+.verify-field input.bad {
+  box-shadow: inset 0 0 0 1.4px #ff453a;
+  color: #ff453a;
+}
+.field-err {
+  min-height: 18px;
+  margin: 8px 4px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #ff453a;
+  text-align: start;
+}
+.field-err.hidden { display: none; }
 .auth-create {
   width: 100%;
   border: 0;
@@ -1415,6 +1450,38 @@ html[data-theme="light"] .verify-field input {
   padding: 14px 16px;
   font-size: 16px;
   font-weight: 750;
+}
+.verify-lead {
+  margin: 4px 0 14px;
+  color: var(--secondary);
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 400;
+}
+.verify-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+.verify-go, .verify-dm {
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  padding: 6px 0;
+  font-size: 15px;
+  font-weight: 750;
+}
+.verify-go { color: var(--accent); }
+.verify-dm { color: var(--secondary); font-weight: 650; }
+.verify-on {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 750;
+  color: var(--accent);
 }
 
 @media (prefers-reduced-motion: reduce) {

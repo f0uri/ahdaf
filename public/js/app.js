@@ -106,6 +106,15 @@
       verifyDm: "مراسلة المطوّر",
       verifiedOn: "حساب موثّق",
       makeUser: "تحويل إلى يوزر",
+      handleTitle: "أكمل حسابك",
+      handleLead: "اليوزر ثابت ولا يمكن تغييره لاحقاً",
+      handleLab: "اليوزر",
+      nameLab: "الاسم",
+      handleSave: "متابعة",
+      handleBad: "يوزر من 3 إلى 20 حرفاً: حروف وأرقام ونقطة وشرطة سفلية",
+      handleTaken: "هذا اليوزر مستخدم",
+      handleNeed: "أدخل اليوزر والاسم",
+      verifyBody: "راسل المطوّر بيوزرك ليصلك الكود الخاص بحسابك فقط.",
       ameen: "آمين",
       remembrance: "ذكر",
       followHint: "تابع فرقك لتظهر أولاً في الرئيسية.",
@@ -236,6 +245,16 @@
       verifyDm: "Message the developer",
       verifiedOn: "Verified account",
       makeUser: "Create a username",
+      handleTitle: "Finish your profile",
+      handleLead: "Your username is permanent and unique",
+      handleLab: "Username",
+      nameLab: "Name",
+      handleSave: "Continue",
+      handleBad: "3–20 characters: letters, numbers, dot or underscore",
+      handleTaken: "That username is taken",
+      handleNeed: "Enter a username and name",
+      verifyNeedUser: "Create a username first so the code binds to you.",
+      verifyBody: "Message the developer your username to receive your unique code.",
       ameen: "Ameen",
       remembrance: "Remembrance",
       followHint: "Follow your clubs so they appear first on Home.",
@@ -304,6 +323,36 @@
     "champions-league": "eu", "europa-league": "eu", uefa: "eu", fifa: "un",
     intl: "un", international: "un", africa: "un", caf: "un", concacaf: "un",
     conmebol: "un", "club-friendlies": "un", friendlies: "un",
+    "world-cup": "un", "nations-league": "eu", "euro": "eu", "copa-america": "un",
+    "africa-cup": "un", afcon: "un", "asian-cup": "un", "gold-cup": "un",
+    "korea-republic": "kr", "korea-dpr": "kp", "north-korea": "kp",
+    "china-pr": "cn", "chinese-taipei": "tw", taiwan: "tw",
+    "republic-of-ireland": "ie", eire: "ie",
+    "bosnia-herzegovina": "ba", "fyrom": "mk",
+    "trinidad-and-tobago": "tt", "el-salvador": "sv", nicaragua: "ni",
+    "dominican-republic": "do", haiti: "ht", cuba: "cu",
+    "papua-new-guinea": "pg", fiji: "fj", tahiti: "pf",
+    "central-african-republic": "cf", "equatorial-guinea": "gq",
+    "sao-tome": "st", eswatini: "sz", swaziland: "sz", lesotho: "ls",
+    eritrea: "er", "south-sudan": "ss",
+    "congo-dr": "cd", "drcongo": "cd", "democratic-republic-congo": "cd",
+    "korea": "kr", "usa": "us", "united-states-of-america": "us",
+    "england": "gb-eng", "scotland": "gb-sct", "wales": "gb-wls",
+    georgia: "ge", armenia: "am", azerbaijan: "az",
+    "sri-lanka": "lk", nepal: "np", "myanmar": "mm", cambodia: "kh",
+    laos: "la", mongolia: "mn", afghanistan: "af",
+    "new-caledonia": "nc", "solomon-islands": "sb",
+    "san-marino": "sm", andorra: "ad", liechtenstein: "li",
+    gibraltar: "gi", "isle-of-man": "im",
+    "puerto-rico": "pr", suriname: "sr", guyana: "gy",
+    "french-guiana": "gf", martinique: "mq", guadeloupe: "gp",
+    curacao: "cw", aruba: "aw", bermuda: "bm",
+    "antigua-and-barbuda": "ag", barbados: "bb", grenada: "gd",
+    dominica: "dm", "st-lucia": "lc", "st-kitts": "kn",
+    "st-vincent": "vc", belize: "bz",
+    "timor-leste": "tl", brunei: "bn", maldives: "mv",
+    kyrgyzstan: "kg", tajikistan: "tj", turkmenistan: "tm",
+    "korea-south": "kr",
   };
 
   const FLAG_NAME = {
@@ -313,7 +362,24 @@
     belgium: "be", scotland: "gb-sct", tunisia: "tn", algeria: "dz",
     nigeria: "ng", japan: "jp", china: "cn", australia: "au", canada: "ca",
     "saudi arabia": "sa", "south africa": "za", "united states": "us", usa: "us",
-    "ivory coast": "ci",
+    "ivory coast": "ci", "côte d'ivoire": "ci", "cote d'ivoire": "ci",
+    "saudi arabia": "sa", "united arab emirates": "ae", "south korea": "kr",
+    "north korea": "kp", "czech republic": "cz", "north macedonia": "mk",
+    "bosnia and herzegovina": "ba", "faroe islands": "fo",
+    "northern ireland": "gb-nir", "republic of ireland": "ie",
+    "hong kong": "hk", "south africa": "za", "new zealand": "nz",
+    "costa rica": "cr", "el salvador": "sv", "trinidad and tobago": "tt",
+    "cape verde": "cv", "burkina faso": "bf", "sierra leone": "sl",
+    "guinea bissau": "gw", "equatorial guinea": "gq",
+    "central african republic": "cf", "dr congo": "cd", "congo dr": "cd",
+    "south sudan": "ss", "sri lanka": "lk", "san marino": "sm",
+    "united states": "us", "great britain": "gb",
+    المغرب: "ma", مصر: "eg", السعودية: "sa", الجزائر: "dz", تونس: "tn",
+    الإمارات: "ae", قطر: "qa", العراق: "iq", الأردن: "jo", لبنان: "lb",
+    فلسطين: "ps", سوريا: "sy", اليمن: "ye", السودان: "sd", ليبيا: "ly",
+    إنجلترا: "gb-eng", إسبانيا: "es", إيطاليا: "it", ألمانيا: "de",
+    فرنسا: "fr", البرازيل: "br", الأرجنتين: "ar", البرتغال: "pt",
+    هولندا: "nl", بلجيكا: "be", المغرب: "ma",
   };
 
   function readAuth() {
@@ -407,6 +473,8 @@
     const badgeEl = $("#userLineBadge");
     if (nameEl) nameEl.textContent = state.auth?.name || t("guest");
     if (badgeEl) badgeEl.innerHTML = window.AhdafSecure?.isVerified?.(state.auth) ? verifiedBadge(16) : "";
+    const hEl = $("#userLineHandle");
+    if (hEl) hEl.textContent = state.auth?.handle ? "@" + state.auth.handle : "";
   }
 
   function saveFav() {
@@ -650,12 +718,42 @@
   }
 
   function flag(ccd, countryName) {
-    let code = FLAG[String(ccd || "").toLowerCase()] || "";
-    if (!code && countryName) code = FLAG_NAME[String(countryName).toLowerCase()] || "";
-    if (!code && ccd && /^[a-z]{2}$/i.test(ccd)) code = ccd.toLowerCase();
-    if (!code) return `<span class="flag-fallback">${esc((ccd || "?").slice(0, 2).toUpperCase())}</span>`;
+    const rawCcd = String(ccd || "").toLowerCase().trim();
+    const rawName = String(countryName || "").toLowerCase().trim();
+    let code = FLAG[rawCcd] || FLAG_NAME[rawCcd] || FLAG_NAME[rawName] || "";
+    if (!code && rawName) {
+      const slug = rawName.replace(/[^a-z0-9\u0600-\u06ff]+/g, "-").replace(/^-|-$/g, "");
+      code = FLAG[slug] || FLAG_NAME[slug] || "";
+    }
+    if (!code && rawCcd.includes("-")) {
+      const last = rawCcd.split("-").pop();
+      if (last && /^[a-z]{2}$/.test(last)) code = last;
+    }
+    if (!code && /^[a-z]{2}$/.test(rawCcd)) code = rawCcd;
+    if (!code && /^[a-z]{3}$/.test(rawCcd)) {
+      const iso3 = { mar:"ma", egy:"eg", sau:"sa", uae:"ae", alg:"dz", tun:"tn",
+        irn:"ir", irq:"iq", jor:"jo", lib:"lb", pal:"ps", syr:"sy", yem:"ye",
+        sud:"sd", lby:"ly", sen:"sn", gha:"gh", nga:"ng", cmr:"cm", civ:"ci",
+        mli:"ml", bfa:"bf", gui:"gn", gnb:"gw", gam:"gm", tog:"tg", ben:"bj",
+        nig:"ne", cha:"td", mtn:"mr", sle:"sl", lbr:"lr", gab:"ga", cgo:"cg",
+        cod:"cd", ang:"ao", moz:"mz", zam:"zm", zim:"zw", mwi:"mw", rwa:"rw",
+        uga:"ug", ken:"ke", tan:"tz", eth:"et", som:"so", dji:"dj", mad:"mg",
+        com:"km", mri:"mu", cpv:"cv", bot:"bw", nam:"na", rsa:"za",
+        eng:"gb-eng", sco:"gb-sct", wal:"gb-wls", nir:"gb-nir", irl:"ie",
+        esp:"es", ita:"it", ger:"de", fra:"fr", por:"pt", ned:"nl", bel:"be",
+        bra:"br", arg:"ar", mex:"mx", usa:"us", can:"ca", uru:"uy", chi:"cl",
+        col:"co", per:"pe", ecu:"ec", par:"py", bol:"bo", ven:"ve",
+        jpn:"jp", kor:"kr", chn:"cn", aus:"au", ind:"in", idn:"id", tha:"th",
+        tur:"tr", gre:"gr", pol:"pl", ukr:"ua", rus:"ru", cro:"hr", srb:"rs",
+        rou:"ro", cze:"cz", svk:"sk", svn:"si", hun:"hu", aut:"at", sui:"ch",
+        den:"dk", swe:"se", nor:"no", fin:"fi", isl:"is" };
+      code = iso3[rawCcd] || "";
+    }
+    const letters = esc((rawCcd || rawName || "?").replace(/[^a-z\u0600-\u06ff]/gi, "").slice(0, 2).toUpperCase() || "?");
+    const fallback = `<span class="flag-fallback">${letters}</span>`;
+    if (!code) return fallback;
     const safe = String(code).replace(/[^a-z0-9-]/gi, "");
-    return `<img class="flag" alt="" src="https://flagcdn.com/w40/${safe}.png" onerror="this.outerHTML='<span class=flag-fallback>${esc((ccd || "").slice(0, 2))}</span>'">`;
+    return `<img class="flag" alt="" src="https://flagcdn.com/w40/${safe}.png" onerror="this.outerHTML='${fallback.replace(/'/g, "")}'">`;
   }
 
   async function api(path) {
@@ -1360,7 +1458,7 @@
         <div class="settings-row account-row">
           <div>
             <b>${t("account")}</b>
-            <small>${esc(state.auth?.name || t("guest"))}${state.auth?.email ? " · " + esc(state.auth.email) : ""}</small>
+            <small>${esc(state.auth?.name || t("guest"))}${state.auth?.handle ? " · @" + esc(state.auth.handle) : ""}${state.auth?.email ? " · " + esc(state.auth.email) : ""}</small>
           </div>
           ${state.auth ? `<button class="chip" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on auth-google mini" id="authGoogle"><span class="g-logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.97 6.97 0 0 1 5.48 12c0-.72.12-1.43.36-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span><span>${t("googleBtn")}</span></button>`}
         </div>
@@ -1396,10 +1494,14 @@
           ${window.AhdafSecure?.isVerified?.(state.auth)
             ? `<div class="verify-on">${verifiedBadge(18)}<span>${t("verifiedOn")}</span></div>`
             : `<p class="verify-lead">${t("verifyBody")}</p>
-          <div class="verify-field"><input id="verifyInput" type="text" maxlength="64" autocomplete="one-time-code" placeholder="${esc(t("verifyCode"))}" /></div>
+          <div class="verify-field">
+            <span class="field-lab">${esc(t("verifyCode"))}</span>
+            <input id="verifyInput" type="text" maxlength="16" autocomplete="one-time-code" placeholder="XXXX-XXXX-XXXX" />
+            <p class="field-err hidden" id="verifyErr"></p>
+          </div>
           <div class="verify-actions">
-            <button type="button" class="verify-go" id="verifyGo">${t("verifyGo")}</button>
             <button type="button" class="verify-dm" id="verifyDm">${t("verifyDm")}</button>
+            <button type="button" class="verify-go" id="verifyGo">${t("verifyGo")}</button>
           </div>`}
         </div>
       </div>
@@ -1544,6 +1646,7 @@
       layer.classList.add("hidden");
       layer.setAttribute("aria-hidden", "true");
     }
+    $("#handleLayer")?.classList.add("hidden");
     setGoogleBusy(false);
     enterWithGoogle.busy = false;
   }
@@ -1566,32 +1669,31 @@
       .slice(0, 24) || "user";
   }
   function enterAsUser(raw) {
-    const name = String(raw || "").trim().replace(/\s+/g, " ").slice(0, 24);
-    if (name.length < 2) {
-      flash(t("userBad"));
-      return false;
-    }
-    const prevL = state.favLeagues.slice();
-    const prevT = state.favTeams.slice();
-    persistAuth({ id: "u:" + slugName(name), name, mode: "user" });
-    state.favLeagues = prevL;
-    state.favTeams = prevT;
-    saveFav();
-    localStorage.setItem(storeKey("ahdaf-fav-t"), JSON.stringify(state.favTeams));
-    enterHome();
+    persistAuth({ id: "pending", name: String(raw || "").trim(), mode: "user" });
+    showHandleSetup(String(raw || "").trim());
     return true;
+  }
+  function setVerifyErr(msg) {
+    const input = $("#verifyInput");
+    const err = $("#verifyErr");
+    if (input) input.classList.toggle("bad", !!msg);
+    if (err) {
+      err.textContent = msg || "";
+      err.classList.toggle("hidden", !msg);
+    }
   }
   async function submitVerify() {
     const input = $("#verifyInput");
     const res = await window.AhdafSecure?.submitCode?.(input?.value || "", state.auth);
     if (res?.ok) {
-      flash(t("verifyOk"));
+      setVerifyErr("");
       applyChrome();
       if (state.stack[state.stack.length - 1]?.type === "settings" || state.tab === "more") renderSettings();
       return;
     }
-    if (res?.needUser) flash(t("verifyNeedUser"));
-    else flash(res?.wait ? t("verifyWait") : t("verifyNo"));
+    if (res?.needUser) setVerifyErr(t("verifyNeedUser"));
+    else if (res?.wait) setVerifyErr(t("verifyWait"));
+    else setVerifyErr(t("verifyNo"));
   }
   function snapshot() {
     return {
@@ -1651,6 +1753,44 @@
     const label = $("#authGoogleLabel") || btn.querySelector("span:last-child");
     if (label) label.textContent = on ? t("googleWait") : t("googleBtn");
   }
+  function showHandleSetup(prefill) {
+    hideAuth();
+    const layer = $("#handleLayer");
+    if (!layer) { enterHome(); return; }
+    $("#handleLead") && ($("#handleLead").textContent = t("handleLead"));
+    $("#handleLab") && ($("#handleLab").textContent = t("handleLab"));
+    $("#nameLab") && ($("#nameLab").textContent = t("nameLab"));
+    $("#handleSave") && ($("#handleSave").textContent = t("handleSave"));
+    if ($("#handleUser") && !state.auth?.handle) $("#handleUser").value = "";
+    if ($("#handleName")) $("#handleName").value = prefill || state.auth?.name || "";
+    const err = $("#handleErr");
+    if (err) { err.textContent = ""; err.classList.add("hidden"); }
+    layer.classList.remove("hidden");
+    setTimeout(() => $("#handleUser")?.focus(), 80);
+  }
+  function finishProfile() {
+    const parsed = window.AhdafSecure?.validHandle?.($("#handleUser")?.value);
+    const name = String($("#handleName")?.value || "").trim().replace(/\s+/g, " ").slice(0, 24);
+    const box = $("#handleErr");
+    const show = (msg) => { if (box) { box.textContent = msg; box.classList.remove("hidden"); } };
+    if (!parsed?.ok) { show(t("handleBad")); return false; }
+    if (!name || name.length < 2) { show(t("handleNeed")); return false; }
+    const owner = state.auth?.id || ("u:" + parsed.handle);
+    if (window.AhdafSecure?.isTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return false; }
+    if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return false; }
+    const next = {
+      ...(state.auth || {}),
+      id: state.auth?.id || ("u:" + parsed.handle),
+      handle: parsed.handle,
+      name,
+      mode: state.auth?.mode || "user",
+    };
+    persistAuth(next);
+    $("#handleLayer")?.classList.add("hidden");
+    window.AhdafSecure?.notifySignup?.(next);
+    enterHome();
+    return true;
+  }
   async function enterWithGoogle() {
     tap();
     if (enterWithGoogle.busy) return;
@@ -1661,8 +1801,6 @@
         flash(t("googleFail"));
         return;
       }
-      // Do not call Capacitor.Plugins.GoogleAuth.signIn — it null-derefs
-      // and kills the APK when initialize() was never run.
       const session = await window.AhdafCloud.signIn();
       if (!session?.profile) {
         flash(t("googleFail"));
@@ -1670,24 +1808,25 @@
       }
       state.cloudToken = session.access || "";
       if (session.access) localStorage.setItem("ahdaf-gtoken", session.access);
-      persistAuth(session.profile);
+      const prev = readAuth();
+      const merged = {
+        ...session.profile,
+        handle: prev?.id === session.profile.id ? prev.handle : prev?.email === session.profile.email ? prev.handle : "",
+        name: (prev?.id === session.profile.id && prev?.name) || session.profile.name,
+      };
+      persistAuth(merged);
       if (session.access && window.AhdafCloud) {
-        try {
-          const remote = await window.AhdafCloud.pull(session.access);
-          if (remote) applyRemote(remote);
-          else await window.AhdafCloud.push(session.access, snapshot());
-        } catch {}
+        window.AhdafCloud.pull(session.access).then((remote) => {
+          if (remote) { applyRemote(remote); if (state.auth?.handle) renderPage(); }
+          else return window.AhdafCloud.push(session.access, snapshot());
+        }).catch(() => {});
       }
-      $("#authLayer")?.classList.add("hidden");
-      applyChrome();
-      renderPage();
-      startDhikr();
+      if (merged.handle) enterHome();
+      else showHandleSetup(merged.name);
     } catch (e) {
-      if (String(e?.message || e) !== "closed" && String(e?.message || e) !== "timeout") {
-        flash(t("googleFail"));
-      } else {
-        flash(t("googleFail"));
-      }
+      const code = String(e?.code || e?.message || e || "");
+      if (code === "cancel") return;
+      flash(code === "blocked" || code === "10" ? t("googleBlocked") : t("googleFail"));
     } finally {
       enterWithGoogle.busy = false;
       setGoogleBusy(false);
@@ -1711,6 +1850,9 @@
       if (e.key === "Enter") { e.preventDefault(); tap(); enterAsUser(e.target.value); }
     });
     $("#authGoogle")?.addEventListener("click", enterWithGoogle);
+    $("#handleSave")?.addEventListener("click", () => { tap(); finishProfile(); });
+    $("#handleUser")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#handleName")?.focus(); } });
+    $("#handleName")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); tap(); finishProfile(); } });
     $("#dhikrAmeen")?.addEventListener("click", (e) => { e.stopPropagation(); tap(); hideDhikr(); });
     $("#dhikrLayer")?.addEventListener("click", (e) => {
       if (e.target.id === "dhikrLayer") hideDhikr();
@@ -1882,6 +2024,8 @@
       if (!state.auth) {
         setAuthCopy();
         $("#authLayer")?.classList.remove("hidden");
+      } else if (state.auth.mode !== "guest" && !state.auth.handle) {
+        showHandleSetup(state.auth.name);
       }
       skeleton();
       try {
