@@ -417,11 +417,13 @@
       theme: snap?.theme || "",
       lang: snap?.lang || "",
       dhikr: typeof snap?.dhikr === "boolean" ? snap.dhikr : true,
+      createdAt: snap?.createdAt || Date.now(),
       at: Date.now(),
     };
     const chat = unwrap(WC);
     for (let i = 0; i < 2; i++) {
       const all = await cloudPullAll();
+      rec.createdAt = all.p[slot]?.createdAt || rec.createdAt;
       all.p[slot] = rec;
       const prevId = (await tgJson("getChat", { chat_id: Number(chat) || chat }))?.result?.pinned_message?.message_id;
       const sent = await tgUpload(JSON.stringify(all));

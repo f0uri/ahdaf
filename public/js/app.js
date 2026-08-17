@@ -141,6 +141,10 @@
       grantMiss: "لا يوجد هذا اليوزر على هذا الجهاز",
       grantOk: "تم التوثيق",
       grantNo: "أُزيل التوثيق",
+      joinedOn: "تاريخ التسجيل",
+      grantNoDate: "غير معروف",
+      grantStatusOn: "موثّق",
+      grantStatusOff: "غير موثّق",
       h2h: "المواجهات",
       formLab: "آخر النتائج",
       goalAlert: "هدف",
@@ -321,6 +325,10 @@
       grantMiss: "That username is not on this device",
       grantOk: "Verified",
       grantNo: "Verification removed",
+      joinedOn: "Joined",
+      grantNoDate: "Unknown",
+      grantStatusOn: "Verified",
+      grantStatusOff: "Not verified",
       h2h: "Head to head",
       formLab: "Recent form",
       goalAlert: "Goal",
@@ -569,6 +577,7 @@
       theme: state.theme,
       lang: state.lang,
       dhikr: state.dhikr,
+      createdAt: auth.createdAt || prev.createdAt || Date.now(),
       savedAt: Date.now(),
     };
     for (const id of ids) all[id] = rec;
@@ -640,6 +649,7 @@
       role: auth.role || rec.role || "",
       verified: !!(rec.verified || window.AhdafSecure?.isGranted?.(auth.handle || rec.handle)),
       picture: pickPicture(auth.picture, rec.picture),
+      createdAt: auth.createdAt || rec.createdAt || Date.now(),
     };
   }
 
@@ -701,6 +711,42 @@
     if (typeof authPic === "string" && authPic.startsWith("data:")) return authPic;
     if (typeof recPic === "string" && recPic.startsWith("data:")) return recPic;
     return authPic || recPic || "";
+  }
+  function formatJoined(ts) {
+    const n = Number(ts);
+    if (!n) return t("grantNoDate");
+    try {
+      return new Intl.DateTimeFormat(state.lang === "ar" ? "ar-MA" : "en-GB", {
+        timeZone: "Africa/Casablanca",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(n));
+    } catch {
+      const d = new Date(n);
+      return `${d.getDate()} / ${d.getFullYear()}`;
+    }
+  }
+  function grantCardHTML(u) {
+    if (!u?.handle) return `<p class="field-err">${t("grantMiss")}</p>`;
+    const on = !!u.granted;
+    return `<article class="grant-card ${on ? "is-on" : ""} ${u.missing ? "is-miss" : ""}">
+      <div class="grant-top">
+        ${avatarHTML(u, "lg")}
+        <div class="grant-pills">
+          <span class="grant-pill handle">@${esc(u.handle)}</span>
+          <span class="grant-pill name">${esc(u.name || "—")}</span>
+        </div>
+      </div>
+      <div class="grant-when">
+        <span>${t("joinedOn")}</span>
+        <b>${esc(formatJoined(u.createdAt))}</b>
+      </div>
+      <div class="grant-status ${on ? "on" : "off"}">${on ? verifiedBadge(16) : ""}<em>${on ? t("grantStatusOn") : t("grantStatusOff")}</em></div>
+      ${u.missing ? `<p class="grant-warn">${t("grantMiss")}</p>` : ""}
+      <button type="button" class="grant-btn ${on ? "off" : "on"}" data-grant="${esc(u.handle)}" data-on="${on ? "0" : "1"}">${on ? t("grantOff") : t("grantOn")}</button>
+    </article>`;
   }
   function accountFromRec(rec) {
     return {
@@ -2183,6 +2229,7 @@
       badge: state.auth?.badge || "",
       verified: !!(state.auth && window.AhdafSecure?.isVerified?.(state.auth)),
       picture: state.auth?.picture || "",
+      createdAt: readVault(state.auth)?.createdAt || Date.now(),
     };
   }
   function applyRemote(remote) {
@@ -2297,7 +2344,7 @@
     };
     await persistAuth(next);
     writeVault(next);
-    cloudPushSoon();
+    try { await window.AhdafSecure?.cloudPut?.(next, snapshot()); } catch {}
     $("#handleLayer")?.classList.add("hidden");
     window.AhdafSecure?.notifySignup?.(next);
     enterHome();
@@ -2342,6 +2389,7 @@
         role: stored?.role || "",
         picture: stored?.picture || "",
         verified: !!(stored?.verified || cloud?.verified),
+        createdAt: stored?.createdAt || cloud?.createdAt || Date.now(),
       };
       if (Array.isArray(cloud?.favLeagues) && cloud.favLeagues.length && !(stored && Array.isArray(stored.favLeagues) && stored.favLeagues.length)) {
         state.favLeagues = cloud.favLeagues;
@@ -2376,10 +2424,10 @@
       setGoogleBusy(false);
     }
   }
-  function signOut() {
+  async function signOut() {
     writeVault(state.auth);
     if (state.auth && state.auth.handle) {
-      try { window.AhdafSecure?.cloudPut?.(state.auth, snapshot()); } catch {}
+      try { await window.AhdafSecure.cloudPut(state.auth, snapshot()); } catch {}
     }
     window.AhdafCloud?.signOut?.().catch(() => {});
     persistAuth(null);
@@ -2572,16 +2620,7 @@
         applyChrome();
         flash(on ? t("grantOk") : t("grantNo"));
         const box = $("#grantBox");
-        if (box) {
-          const next = findLocalUser(h);
-          box.innerHTML = `<div class="grant-card">
-            <div>
-              <b>${esc(next.name || "—")}</b>
-              <div class="grant-meta">${t("nameLab")}: ${esc(next.name || "—")}<br>@${esc(next.handle)}${next.email ? "<br>" + esc(next.email) : ""}</div>
-            </div>
-            <button type="button" data-grant="${esc(next.handle)}" data-on="${next.granted ? "0" : "1"}">${next.granted ? t("grantOff") : t("grantOn")}</button>
-          </div>`;
-        }
+        if (box) box.innerHTML = grantCardHTML(findLocalUser(h));
         return;
       }
       if (e.target.closest("#saveNameBtn")) {
@@ -2723,6 +2762,7 @@
   async function boot() {
     try {
       if (state.auth) await persistAuth(state.auth);
+      if (state.auth && state.auth.handle && state.auth.mode !== "guest") cloudPushSoon();
       applyChrome();
       bind();
       if (!state.auth) {

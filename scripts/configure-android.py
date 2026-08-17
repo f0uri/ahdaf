@@ -63,6 +63,16 @@ if man.exists():
         mtxt = mtxt.replace("</activity>", filters + "\n        </activity>", 1)
     elif "app.ahdaf.scores" not in mtxt:
         mtxt = mtxt.replace("</activity>", filters + "\n        </activity>", 1)
+    if "android:allowBackup" not in mtxt:
+        mtxt = mtxt.replace(
+            "<application",
+            '<application android:allowBackup="true" android:hasFragileUserData="true"',
+            1,
+        )
+    else:
+        mtxt = mtxt.replace('android:allowBackup="false"', 'android:allowBackup="true"')
+        if "hasFragileUserData" not in mtxt:
+            mtxt = mtxt.replace("<application", '<application android:hasFragileUserData="true"', 1)
     man.write_text(mtxt)
 
 gradle = Path("android/app/build.gradle")
