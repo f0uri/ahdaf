@@ -2567,6 +2567,11 @@
         renderPage();
         return;
       }
+      const open = e.target.closest("[data-open]");
+      if (open?.dataset.open) {
+        push({ type: open.dataset.open });
+        return;
+      }
       if (e.target.closest("#retry")) return loadDate(state.date);
       if (e.target.closest("#signOutBtn")) {
         tap();
