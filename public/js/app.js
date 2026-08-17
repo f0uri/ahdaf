@@ -120,9 +120,25 @@
       saveHandle: "حفظ اليوزر",
       handleSaved: "تم تغيير اليوزر",
       badgeColor: "لون التوثيق",
-      badgeColorHint: "الأصفر، الأحمر، الأخضر، الأزرق وجميع الألوان الأساسية",
+      badgeColorHint: "",
       adminOn: "حساب المطوّر موثّق تلقائياً",
       adminMark: "أدمن",
+      accounts: "الحسابات",
+      switchAcc: "تبديل",
+      addAcc: "حساب جوجل آخر",
+      currentAcc: "الحالي",
+      grantTitle: "توثيق يوزر",
+      grantLead: "أدخل اليوزر لعرض معلوماته وتوثيقه أو إزالة التوثيق",
+      grantGo: "بحث",
+      grantOn: "توثيق",
+      grantOff: "إزالة التوثيق",
+      grantMiss: "لا يوجد هذا اليوزر على هذا الجهاز",
+      grantOk: "تم التوثيق",
+      grantNo: "أُزيل التوثيق",
+      h2h: "المواجهات",
+      formLab: "آخر النتائج",
+      goalAlert: "هدف",
+      officialWatch: "منصات رسمية",
       verifyBody: "راسل المطوّر بيوزرك ليصلك الكود الخاص بحسابك فقط.",
       editName: "تعديل الاسم",
       saveName: "حفظ",
@@ -278,9 +294,25 @@
       saveHandle: "Save username",
       handleSaved: "Username updated",
       badgeColor: "Badge color",
-      badgeColorHint: "Yellow, red, green, blue and the core colors",
+      badgeColorHint: "",
       adminOn: "Owner account is verified automatically",
       adminMark: "Admin",
+      accounts: "Accounts",
+      switchAcc: "Switch",
+      addAcc: "Another Google account",
+      currentAcc: "Current",
+      grantTitle: "Verify a user",
+      grantLead: "Enter a username to see their info and verify or remove verification",
+      grantGo: "Search",
+      grantOn: "Verify",
+      grantOff: "Remove",
+      grantMiss: "That username is not on this device",
+      grantOk: "Verified",
+      grantNo: "Verification removed",
+      h2h: "Head to head",
+      formLab: "Recent form",
+      goalAlert: "Goal",
+      officialWatch: "Official platforms",
       verifyNeedUser: "Create a username first so the code binds to you.",
       editName: "Edit name",
       saveName: "Save",
@@ -528,6 +560,55 @@
     for (const id of ids) all[id] = rec;
     try { localStorage.setItem("ahdaf-vault", JSON.stringify(all)); } catch {}
   }
+  function listVaultAccounts() {
+    const all = vaultAll();
+    const seen = new Set();
+    const out = [];
+    for (const rec of Object.values(all)) {
+      if (!rec || !rec.id || rec.mode === "guest") continue;
+      if (seen.has(rec.id)) continue;
+      seen.add(rec.id);
+      out.push(rec);
+    }
+    return out.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
+  }
+  function findLocalUser(handle) {
+    const h = String(handle || "").trim().toLowerCase();
+    if (!h) return null;
+    const grant = window.AhdafSecure?.grantOf?.(h);
+    for (const rec of listVaultAccounts()) {
+      if (String(rec.handle || "").toLowerCase() === h) {
+        return {
+          handle: rec.handle || h,
+          name: rec.name || grant?.name || "",
+          email: rec.email || grant?.email || "",
+          id: rec.id,
+          granted: !!(grant && grant.on) || !!rec.verified,
+        };
+      }
+    }
+    if (grant) return { handle: h, name: grant.name || "", email: grant.email || "", granted: !!grant.on };
+    return { handle: h, name: "", email: "", granted: false, missing: true };
+  }
+  function stampUserVerified(handle, on, extra) {
+    const h = String(handle || "").trim().toLowerCase();
+    if (!h) return;
+    window.AhdafSecure?.setGrant?.(h, on ? { on: true, name: extra?.name || "", email: extra?.email || "" } : { on: false });
+    const all = vaultAll();
+    let changed = false;
+    for (const [k, rec] of Object.entries(all)) {
+      if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
+      all[k] = { ...rec, verified: !!on, name: extra?.name || rec.name || "", email: extra?.email || rec.email || "" };
+      changed = true;
+    }
+    if (changed) {
+      try { localStorage.setItem("ahdaf-vault", JSON.stringify(all)); } catch {}
+    }
+    if (state.auth && String(state.auth.handle || "").toLowerCase() === h) {
+      state.auth = { ...state.auth, verified: !!on };
+      try { localStorage.setItem("ahdaf-auth", JSON.stringify(state.auth)); } catch {}
+    }
+  }
   function applyVault(auth) {
     const rec = readVault(auth);
     if (!rec) return auth;
@@ -543,6 +624,7 @@
       badge: auth.badge || rec.badge || "teal",
       seal: auth.seal || rec.seal || "",
       role: auth.role || rec.role || "",
+      verified: !!(rec.verified || window.AhdafSecure?.isGranted?.(auth.handle || rec.handle)),
     };
   }
 
@@ -765,6 +847,51 @@
     return { kind: "ns", label: eps || formatKick(ev.Esd) };
   }
 
+  function collectMeetings(id1, id2) {
+    if (id1 == null || id2 == null || id1 === "" || id2 === "") return [];
+    const a = String(id1), b = String(id2);
+    const seen = new Set();
+    const out = [];
+    const bags = [...(state.stages || []), ...(state.live || [])];
+    for (const rec of Object.values(state.cache || {})) {
+      if (rec?.v?.Stages) bags.push(...rec.v.Stages);
+    }
+    for (const s of bags) {
+      for (const ev of s.Events || []) {
+        const x = String(teamOf(ev.T1).id || "");
+        const y = String(teamOf(ev.T2).id || "");
+        if (!x || !y || seen.has(ev.Eid)) continue;
+        if (!((x === a && y === b) || (x === b && y === a))) continue;
+        seen.add(ev.Eid);
+        out.push({ ev, s });
+      }
+    }
+    out.sort((p, q) => String(q.ev.Esd || "").localeCompare(String(p.ev.Esd || "")));
+    return out.slice(0, 8);
+  }
+  function pingGoal(stages) {
+    const prev = pingGoal.map || {};
+    const next = {};
+    for (const s of stages || []) {
+      for (const ev of s.Events || []) {
+        if (!evHasFavTeam(ev)) continue;
+        const sc = `${ev.Tr1 ?? ""}-${ev.Tr2 ?? ""}`;
+        next[ev.Eid] = sc;
+        if (prev[ev.Eid] && prev[ev.Eid] !== sc && statusOf(ev).kind === "live") {
+          const t1 = teamOf(ev.T1), t2 = teamOf(ev.T2);
+          const msg = `${t("goalAlert")} · ${t1.name} ${ev.Tr1}–${ev.Tr2} ${t2.name}`;
+          flash(msg);
+          try {
+            if (window.Notification) {
+              if (Notification.permission === "granted") new Notification("أهداف", { body: msg, silent: false });
+              else if (Notification.permission !== "denied") Notification.requestPermission();
+            }
+          } catch {}
+        }
+      }
+    }
+    pingGoal.map = next;
+  }
   function teamOf(arr) {
     const o = (arr && arr[0]) || {};
     return {
@@ -1134,24 +1261,6 @@
     if (opts.followedOnly && state.date && state.tab === "matches") {
       extra += `<div class="day-banner sticky">${esc(dayHeading(state.date))}</div>`;
     }
-    if (opts.followedOnly && state.tab !== "live" && state.filter !== "finished" && state.filter !== "upcoming") {
-      const livePairs = [];
-      for (const s of list) {
-        for (const ev of s.Events) {
-          if (statusOf(ev).kind === "live") livePairs.push({ ev, s });
-        }
-      }
-      livePairs.sort((a, b) => Number(evHasFavTeam(b.ev)) - Number(evHasFavTeam(a.ev)));
-      if (livePairs.length) {
-        extra += `<section class="league live-block">
-          <div class="league-h live-h">
-            <span class="live-dot"></span>
-            <button class="meta"><b>${t("liveNow")}</b><span>${livePairs.length}</span></button>
-          </div>
-          ${livePairs.map(({ ev, s }) => renderMatch(ev, s)).join("")}
-        </section>`;
-      }
-    }
     if (opts.followedOnly && state.tab === "matches" && state.favTeams.length) {
       const mine = [];
       const seen = new Set();
@@ -1201,6 +1310,7 @@
     try {
       const data = await api("/api/live");
       state.live = data.Stages || [];
+      pingGoal(state.live);
       applyChrome();
       if (state.tab === "live" && !state.stack.length) {
         setTitle(t("live"));
@@ -1336,6 +1446,12 @@
       </div>
       <div class="section-t">${t("lastEvent")}</div>
       <div class="sheet-card ticker" id="watchTicker">${events}</div>
+      <div class="section-t">${t("officialWatch")}</div>
+      <div class="official-mini">
+        <a href="https://www.tod.tv" target="_blank" rel="noopener">TOD</a>
+        <a href="https://www.beinsports.com" target="_blank" rel="noopener">beIN</a>
+        <a href="https://www.snrt.ma" target="_blank" rel="noopener">SNRT</a>
+      </div>
     `;
   }
 
@@ -1454,9 +1570,19 @@
         ? statsHtml
         : tab === "lineups"
         ? `<div class="section-t">${esc(t1.name)}</div>${players(1)}<div class="section-t">${esc(t2.name)}</div>${players(2)}`
-        : `<div class="event-row"><span style="flex:1">${t("venue")}</span><b>${esc([venue, city].filter(Boolean).join(" · ") || "—")}</b></div>
+        : (() => {
+            const meets = collectMeetings(t1.id, t2.id);
+            const h2h = meets.length
+              ? meets.map(({ ev }) => {
+                  const a = teamOf(ev.T1), b = teamOf(ev.T2);
+                  return `<div class="h2h-row"><span>${esc(a.name)} ${esc(ev.Tr1 ?? "–")}–${esc(ev.Tr2 ?? "–")} ${esc(b.name)}</span><span>${esc(formatKick(ev.Esd))}</span></div>`;
+                }).join("")
+              : `<p class="verify-lead">${t("noEvents")}</p>`;
+            return `<div class="event-row"><span style="flex:1">${t("venue")}</span><b>${esc([venue, city].filter(Boolean).join(" · ") || "—")}</b></div>
            <div class="event-row"><span style="flex:1">${t("referee")}</span><b>${esc(ref || "—")}</b></div>
-           <div class="event-row"><span style="flex:1">${t("kickoff")}</span><b>${esc(formatKick(sb.Esd || info.Esd))}</b></div>`;
+           <div class="event-row"><span style="flex:1">${t("kickoff")}</span><b>${esc(formatKick(sb.Esd || info.Esd))}</b></div>
+           <div class="section-t">${t("h2h")}</div>${h2h}`;
+          })();
 
     const hideHero = tab === "watch";
     $("#view").innerHTML = `
@@ -1629,6 +1755,12 @@
           </div>
           ${state.auth ? `<button class="chip" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on auth-google mini" id="authGoogle"><span class="g-logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.97 6.97 0 0 1 5.48 12c0-.72.12-1.43.36-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span><span>${t("googleBtn")}</span></button>`}
         </div>
+        ${listVaultAccounts().length ? `<div class="settings-row"><div><b>${t("accounts")}</b></div></div>
+        ${listVaultAccounts().map((a) => `<div class="acct-row ${a.id === state.auth?.id ? "on" : ""}">
+          <div><b>${esc(a.name || a.handle || t("account"))}</b><small>${a.handle ? "@" + esc(a.handle) : (a.id === state.auth?.id ? t("currentAcc") : "")}</small></div>
+          ${a.id === state.auth?.id ? `<span>${t("currentAcc")}</span>` : `<button type="button" data-switch="${esc(a.id)}">${t("switchAcc")}</button>`}
+        </div>`).join("")}
+        <button type="button" class="verify-go" id="addAccBtn" style="margin:4px 2px 12px">${t("addAcc")}</button>` : ""}
         ${state.auth && state.auth.mode !== "guest" ? `<div class="settings-row">
           <div><b>${t("editName")}</b><small>${state.auth.handle ? "@" + esc(state.auth.handle) : ""}</small></div>
         </div>
@@ -1676,11 +1808,17 @@
           ${isOwner()
             ? `<div class="verify-on" style="color:${badgeHex(state.auth)}">${verifiedBadge(18)}<span>${t("adminOn")}</span></div>
           <div class="settings-row" style="border-top:0;padding-top:16px">
-            <div><b>${t("badgeColor")}</b><small>${t("badgeColorHint")}</small></div>
+            <div><b>${t("badgeColor")}</b></div>
           </div>
           <div class="badge-picks">
             ${BADGE_COLORS.map((c) => `<button type="button" class="badge-dot ${(state.auth.badge || "teal") === c.id ? "on" : ""}" data-badge="${c.id}" style="--c:${c.hex}" aria-label="${c.id}"></button>`).join("")}
-          </div>`
+          </div>
+          <div class="settings-row" style="border-top:0;padding-top:16px"><div><b>${t("grantTitle")}</b><small>${t("grantLead")}</small></div></div>
+          <div class="verify-field">
+            <input id="grantInput" type="text" maxlength="20" autocomplete="off" />
+            <button type="button" class="verify-go" id="grantSearch" style="margin-top:8px">${t("grantGo")}</button>
+          </div>
+          <div id="grantBox"></div>`
             : window.AhdafSecure?.isVerified?.(state.auth)
             ? `<div class="verify-on">${verifiedBadge(18)}<span>${t("verifiedOn")}</span></div>`
             : `<p class="verify-lead">${t("verifyBody")}</p>
@@ -1838,7 +1976,8 @@
       if (window.AhdafSecure?.prepareAuth) {
         try { auth = await window.AhdafSecure.prepareAuth(auth, opts); } catch {}
       }
-      if (auth.role === "o") {
+      if (auth.handle && window.AhdafSecure?.isGranted?.(auth.handle)) auth.verified = true;
+      if (auth.role === "o" || auth.verified) {
         try {
           localStorage.setItem("ahdaf-vok", "1");
           const id = window.AhdafSecure.identityOf?.(auth);
@@ -2032,7 +2171,7 @@
     enterHome();
     return true;
   }
-  async function enterWithGoogle() {
+  async function enterWithGoogle(opts) {
     tap();
     if (enterWithGoogle.busy) return;
     enterWithGoogle.busy = true;
@@ -2042,7 +2181,7 @@
         flash(t("googleFail"));
         return;
       }
-      const session = await window.AhdafCloud.signIn();
+      const session = await window.AhdafCloud.signIn(opts || {});
       if (!session?.profile) {
         flash(t("googleFail"));
         return;
@@ -2087,6 +2226,7 @@
   }
   function signOut() {
     writeVault(state.auth);
+    window.AhdafCloud?.signOut?.().catch(() => {});
     persistAuth(null);
     state.stack = [];
     state.tab = "matches";
@@ -2180,6 +2320,72 @@
       if (e.target.closest("#supportOpen")) {
         state.supportOpen = !state.supportOpen;
         renderSettings();
+        return;
+      }
+      if (e.target.closest("#addAccBtn")) {
+        writeVault(state.auth);
+        enterWithGoogle({ picker: true });
+        return;
+      }
+      const sw = e.target.closest("[data-switch]");
+      if (sw?.dataset.switch) {
+        const rec = listVaultAccounts().find((a) => a.id === sw.dataset.switch);
+        if (!rec) return;
+        writeVault(state.auth);
+        state.cloudToken = "";
+        try { localStorage.removeItem("ahdaf-gtoken"); } catch {}
+        persistAuth({
+          id: rec.id,
+          email: rec.email || "",
+          handle: rec.handle || "",
+          name: rec.name || "",
+          badge: rec.badge || "teal",
+          mode: rec.mode || "google",
+          seal: rec.seal || "",
+          role: rec.role || "",
+        }).then(() => { applyChrome(); renderPage(); flash(t("savedOk")); });
+        return;
+      }
+      if (e.target.closest("#grantSearch")) {
+        const raw = $("#grantInput")?.value;
+        const parsed = window.AhdafSecure?.validHandle?.(raw, { admin: true });
+        const found = findLocalUser(parsed?.handle || raw);
+        const box = $("#grantBox");
+        if (!box) return;
+        if (!found?.handle) { box.innerHTML = `<p class="field-err">${t("grantMiss")}</p>`; return; }
+        box.innerHTML = `<div class="grant-card">
+          <div>
+            <b>${esc(found.name || "—")}</b>
+            <div class="grant-meta">${t("nameLab")}: ${esc(found.name || "—")}<br>@${esc(found.handle)}${found.email ? "<br>" + esc(found.email) : ""}${found.missing ? "<br>" + t("grantMiss") : ""}</div>
+          </div>
+          <button type="button" data-grant="${esc(found.handle)}" data-on="${found.granted ? "0" : "1"}">${found.granted ? t("grantOff") : t("grantOn")}</button>
+        </div>`;
+        return;
+      }
+      const gb = e.target.closest("[data-grant]");
+      if (gb && isOwner()) {
+        const h = gb.dataset.grant;
+        const on = gb.dataset.on === "1";
+        const found = findLocalUser(h) || { handle: h, name: "", email: "" };
+        stampUserVerified(h, on, found);
+        if (on) {
+          window.AhdafSecure?.codeForHandle?.(h).then((code) => {
+            window.AhdafSecure?.notifySupport?.(state.auth, "توثيق يوزر: @" + h + (found.name ? " / " + found.name : "") + (found.email ? " / " + found.email : "") + (code ? " / " + code : ""));
+          }).catch(() => {});
+        }
+        applyChrome();
+        flash(on ? t("grantOk") : t("grantNo"));
+        const box = $("#grantBox");
+        if (box) {
+          const next = findLocalUser(h);
+          box.innerHTML = `<div class="grant-card">
+            <div>
+              <b>${esc(next.name || "—")}</b>
+              <div class="grant-meta">${t("nameLab")}: ${esc(next.name || "—")}<br>@${esc(next.handle)}${next.email ? "<br>" + esc(next.email) : ""}</div>
+            </div>
+            <button type="button" data-grant="${esc(next.handle)}" data-on="${next.granted ? "0" : "1"}">${next.granted ? t("grantOff") : t("grantOn")}</button>
+          </div>`;
+        }
         return;
       }
       if (e.target.closest("#saveNameBtn")) {

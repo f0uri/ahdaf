@@ -64,11 +64,19 @@
     return plugin;
   }
 
-  async function signIn() {
+  async function signOut() {
+    try {
+      const plugin = await prepareNative();
+      if (plugin?.signOut) await withTimeout(plugin.signOut(), 8000, "timeout");
+    } catch {}
+  }
+
+  async function signIn(opts) {
     if (!ready()) throw fail("no-client");
     if (!isNative()) throw fail("no-native");
     const plugin = await prepareNative();
     if (!plugin) throw fail("no-plugin");
+    if (opts && opts.picker) await signOut();
     let user;
     try {
       user = await withTimeout(plugin.signIn(), 28000, "timeout");
@@ -141,5 +149,5 @@
     if (!r.ok) throw new Error("drive-create " + r.status);
   }
 
-  window.AhdafCloud = { ready, signIn, pull, push, clientId };
+  window.AhdafCloud = { ready, signIn, signOut, pull, push, clientId };
 })();

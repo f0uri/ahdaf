@@ -156,8 +156,46 @@
     if (!id) return "";
     return expectedCode(id);
   }
+  async function codeForHandle(handle) {
+    const h = normHandle(handle);
+    if (!h) return "";
+    return expectedCode("u:" + h);
+  }
+  function grants() {
+    try { return JSON.parse(localStorage.getItem("ahdaf-vgrants") || "{}"); } catch { return {}; }
+  }
+  function saveGrants(o) {
+    try { localStorage.setItem("ahdaf-vgrants", JSON.stringify(o)); } catch {}
+  }
+  function isGranted(handle) {
+    const h = normHandle(handle);
+    const rec = h && grants()[h];
+    return !!(rec && rec.on);
+  }
+  function grantOf(handle) {
+    const h = normHandle(handle);
+    return (h && grants()[h]) || null;
+  }
+  function setGrant(handle, rec) {
+    const h = normHandle(handle);
+    if (!h) return false;
+    const all = grants();
+    if (!rec || rec.on === false) delete all[h];
+    else {
+      all[h] = {
+        on: true,
+        name: rec.name || all[h]?.name || "",
+        email: rec.email || all[h]?.email || "",
+        at: Date.now(),
+      };
+    }
+    saveGrants(all);
+    return true;
+  }
   function isVerified(auth) {
     if (isAdmin(auth)) return true;
+    if (auth?.handle && isGranted(auth.handle)) return true;
+    if (auth?.verified) return true;
     const id = identityOf(auth);
     if (!id) return false;
     try {
@@ -267,5 +305,6 @@
   window.AhdafSecure = {
     isVerified, isAdmin, prepareAuth, submitCode, openDeveloper, identityOf,
     validHandle, isTaken, claim, notifySignup, notifySupport, codeForAuth,
+    codeForHandle, isGranted, setGrant, grantOf, grants,
   };
 })();

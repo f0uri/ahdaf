@@ -630,7 +630,23 @@ html[data-theme="dark"] .crest { box-shadow: 0 0 0 0.5px rgba(255,255,255,0.08);
   transition: color .18s var(--ease), transform .16s var(--ease);
 }
 .tab svg { width: 24px; height: 24px; }
-.tab.on { color: var(--accent); font-weight: 700; }
+.tab.on { color: var(--accent); font-weight: 700; transform: translateY(-5px); }
+.tab.on::before {
+  content: "";
+  position: absolute;
+  inset: -2px 7px -4px;
+  border-radius: 18px;
+  background: rgba(18, 22, 26, 0.92);
+  box-shadow:
+    0 10px 24px rgba(0,0,0,0.35),
+    0 0 0 0.5px rgba(255,255,255,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.1);
+  z-index: -1;
+}
+html[data-theme="light"] .tab.on::before {
+  background: #fff;
+  box-shadow: 0 10px 22px rgba(0,0,0,0.1), 0 0 0 0.5px rgba(0,0,0,0.06);
+}
 .tab[data-tab="live"].on { color: var(--live); }
 .tab[data-tab="live"].on svg { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--live) 55%, transparent)); }
 .tab:active { transform: scale(0.92); }
@@ -697,10 +713,7 @@ html[data-theme="dark"] .crest { box-shadow: 0 0 0 0.5px rgba(255,255,255,0.08);
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 22px;
-}
-.sb-row {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
+}mplate-columns: 1fr auto 1fr;
   align-items: center;
   gap: 8px;
 }
@@ -1523,6 +1536,37 @@ html[data-theme="light"] .auth-field input::placeholder {
   padding: 4px 2px 8px;
 }
 .badge-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  background: var(--c);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.18);
+  position: relative;
+}
+.badge-dot:active { transform: scale(0.9); }
+.badge-dot.on {
+  box-shadow:
+    0 0 0 3px var(--bg),
+    0 0 0 5px var(--c),
+    inset 0 0 0 1px rgba(255,255,255,0.22);
+}
+html[data-theme="light"] .badge-dot.on {
+  box-shadow:
+    0 0 0 3px #fff,
+    0 0 0 5px var(--c),
+    inset 0 0 0 1px rgba(0,0,0,0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+badge-dot {
   width: 30px;
   height: 30px;
   border-radius: 50%;
