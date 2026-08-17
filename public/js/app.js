@@ -138,7 +138,9 @@
       grantGo: "بحث",
       grantOn: "توثيق",
       grantOff: "إزالة التوثيق",
-      grantMiss: "لا يوجد هذا اليوزر على هذا الجهاز",
+      grantMiss: "سيظهر التوثيق على جهازه عند دخوله",
+      adminTools: "إدارة",
+      grantWait: "جارٍ البحث…",
       grantOk: "تم التوثيق",
       grantNo: "أُزيل التوثيق",
       joinedOn: "تاريخ التسجيل",
@@ -1868,9 +1870,14 @@
     </section>`;
   }
 
+  function moreRow(id, title, sub) {
+    return `<button type="button" class="more-btn" data-open="${esc(id)}">
+      <div><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>
+      <span class="go">‹</span>
+    </button>`;
+  }
   function renderSettings() {
     setTitle(t("more"), t("app"));
-    const accs = listVaultAccounts();
     $("#view").innerHTML = `
       <section class="studio-hero glass">
         <div class="studio-who">
@@ -1883,48 +1890,20 @@
         </div>
         ${state.auth ? `<button class="ghost-btn" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on auth-google mini" id="authGoogle"><span class="g-logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.97 6.97 0 0 1 5.48 12c0-.72.12-1.43.36-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span><span>${t("googleBtn")}</span></button>`}
       </section>
-      <div class="sheet-card glass about-card">
-        <div class="credit">
-          <div class="credit-name">
-            <b>Youssef Mansouri</b>
-            ${verifiedBadge(20, "#1ee0b0")}
-          </div>
-        <div class="about">
-          <b>${t("about")}</b>
-          <p>${t("aboutBody")}</p>
-          <ul>
-            <li>${t("aboutFeat1")}</li>
-            <li>${t("aboutFeat2")}</li>
-            <li>${t("aboutFeat3")}</li>
-          </ul>
-        </div>
+      ${isOwner() ? `<div class="sheet-card glass">
+        <div class="club-kicker">${t("adminTools")}</div>
+        ${moreRow("admin-grant", t("grantTitle"), t("grantLead"))}
+        ${moreRow("admin-badge", t("badgeColor"), "")}
+        ${moreRow("admin-handle", t("editHandle"), t("adminHandleHint"))}
+      </div>` : ""}
+      <div class="sheet-card glass">
+        ${state.auth && state.auth.mode !== "guest" ? moreRow("edit-name", t("editName"), state.auth.handle ? "@" + state.auth.handle : "") : ""}
+        ${!state.auth || state.auth.mode === "guest" ? moreRow("make-user", t("makeUser"), t("userPlaceholder")) : ""}
+        ${!isOwner() ? moreRow("verify-me", t("verifyTitle"), window.AhdafSecure?.isVerified?.(state.auth) ? t("verifiedOn") : t("verifyBody")) : ""}
+        ${moreRow("about", t("about"), "")}
+        ${moreRow("support", t("support"), t("supportHint"))}
       </div>
       <div class="sheet-card glass">
-        ${state.auth && state.auth.mode !== "guest" ? `<div class="settings-row">
-          <div><b>${t("editName")}</b><small>${state.auth.handle ? "@" + esc(state.auth.handle) : ""}</small></div>
-        </div>
-        <div class="verify-field" style="padding:0 2px 12px">
-          <input id="editNameInput" type="text" maxlength="24" value="${esc(state.auth.name || "")}" />
-          <button class="verify-go" id="saveNameBtn" style="margin-top:8px">${t("saveName")}</button>
-        </div>` : ""}
-        ${isOwner() ? `<div class="settings-row">
-          <div><b>${t("editHandle")}</b><small>${t("adminHandleHint")}</small></div>
-        </div>
-        <div class="verify-field" style="padding:0 2px 12px">
-          <input id="editHandleInput" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(state.auth.handle || "")}" />
-          <p class="field-err hidden" id="editHandleErr"></p>
-          <button class="verify-go" id="saveHandleBtn" style="margin-top:8px">${t("saveHandle")}</button>
-        </div>` : ""}
-        ${!state.auth || state.auth.mode === "guest" ? `<div class="settings-row">
-          <div>
-            <b>${t("makeUser")}</b>
-            <small>${t("userPlaceholder")}</small>
-          </div>
-        </div>
-        <div class="verify-field" style="padding:0 2px 12px">
-          <input id="makeUserInput" type="text" maxlength="24" placeholder="${esc(t("userPlaceholder"))}" />
-          <button class="verify-go" id="makeUserBtn" style="margin-top:8px">${t("createUser")}</button>
-        </div>` : ""}
         <div class="settings-row">
           <div><b>${t("dark")}</b></div>
           <button class="toggle ${state.theme === "dark" ? "on" : ""}" id="themeToggle"><i></i></button>
@@ -1941,51 +1920,108 @@
           <button class="toggle ${state.dhikr ? "on" : ""}" id="dhikrToggle"><i></i></button>
         </div>
       </div>
-      <div class="sheet-card glass verify-card">
-        <div class="about">
-          <b>${t("verifyTitle")}</b>
-          ${isOwner()
-            ? `<div class="verify-on" style="color:${badgeHex(state.auth)}">${verifiedBadge(18)}<span>${t("adminOn")}</span></div>
-          <div class="settings-row" style="border-top:0;padding-top:16px">
-            <div><b>${t("badgeColor")}</b></div>
-          </div>
-          <div class="badge-picks">
-            ${BADGE_COLORS.map((c) => `<button type="button" class="badge-dot ${(state.auth.badge || "teal") === c.id ? "on" : ""}" data-badge="${c.id}" style="--c:${c.hex}" aria-label="${c.id}"></button>`).join("")}
-          </div>
-          <div class="settings-row" style="border-top:0;padding-top:16px"><div><b>${t("grantTitle")}</b><small>${t("grantLead")}</small></div></div>
-          <div class="verify-field">
-            <input id="grantInput" type="text" maxlength="20" autocomplete="off" />
-            <button type="button" class="verify-go" id="grantSearch" style="margin-top:8px">${t("grantGo")}</button>
-          </div>
-          <div id="grantBox"></div>`
-            : window.AhdafSecure?.isVerified?.(state.auth)
-            ? `<div class="verify-on">${verifiedBadge(18)}<span>${t("verifiedOn")}</span></div>`
-            : `<p class="verify-lead">${t("verifyBody")}</p>
-          <div class="verify-field">
-            <span class="field-lab">${esc(t("verifyCode"))}</span>
-            <input id="verifyInput" type="text" maxlength="16" autocomplete="one-time-code" placeholder="XXXX-XXXX-XXXX" />
-            <p class="field-err hidden" id="verifyErr"></p>
-          </div>
-          <div class="verify-actions">
-            <button type="button" class="verify-dm" id="verifyDm">${t("verifyDm")}</button>
-            <button type="button" class="verify-go" id="verifyGo">${t("verifyGo")}</button>
-          </div>`}
-        </div>
-      </div>
-      <div class="sheet-card glass verify-card">
-        <div class="about">
-          <button type="button" class="settings-row support-toggle" id="supportOpen">
-            <div><b>${t("support")}</b><small>${t("supportHint")}</small></div>
-          </button>
-          ${state.supportOpen ? `<p class="verify-lead">${t("supportLead")}</p>
-          <textarea class="support-box" id="supportBox" maxlength="800" placeholder="${esc(t("supportPh"))}"></textarea>
-          <div class="verify-actions">
-            <span></span>
-            <button type="button" class="verify-go" id="supportSend">${t("supportSend")}</button>
-          </div>` : ""}
-        </div>
-      </div>
     `;
+  }
+  function renderAdminGrant() {
+    setTitle(t("grantTitle"), t("adminTools"));
+    $("#view").innerHTML = `<div class="sheet-card glass">
+      <p class="verify-lead">${t("grantLead")}</p>
+      <div class="verify-field">
+        <span class="field-lab">${t("handleLab")}</span>
+        <input id="grantInput" type="text" maxlength="20" autocomplete="off" />
+        <button type="button" class="verify-go" id="grantSearch" style="margin-top:8px">${t("grantGo")}</button>
+      </div>
+      <div id="grantBox"></div>
+    </div>`;
+  }
+  function renderAdminBadge() {
+    setTitle(t("badgeColor"), t("adminTools"));
+    $("#view").innerHTML = `<div class="sheet-card glass">
+      <div class="verify-on" style="color:${badgeHex(state.auth)}">${verifiedBadge(18)}<span>${t("adminOn")}</span></div>
+      <div class="badge-picks" style="padding-top:16px">
+        ${BADGE_COLORS.map((c) => `<button type="button" class="badge-dot ${(state.auth.badge || "teal") === c.id ? "on" : ""}" data-badge="${c.id}" style="--c:${c.hex}" aria-label="${c.id}"></button>`).join("")}
+      </div>
+    </div>`;
+  }
+  function renderAdminHandle() {
+    setTitle(t("editHandle"), t("adminTools"));
+    $("#view").innerHTML = `<div class="sheet-card glass">
+      <p class="verify-lead">${t("adminHandleHint")}</p>
+      <div class="verify-field">
+        <span class="field-lab">${t("handleLab")}</span>
+        <input id="editHandleInput" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(state.auth.handle || "")}" />
+        <p class="field-err hidden" id="editHandleErr"></p>
+        <button class="verify-go" id="saveHandleBtn" style="margin-top:8px">${t("saveHandle")}</button>
+      </div>
+    </div>`;
+  }
+  function renderEditName() {
+    setTitle(t("editName"), t("account"));
+    $("#view").innerHTML = `<div class="sheet-card glass">
+      <div class="verify-field">
+        <span class="field-lab">${t("nameLab")}</span>
+        <input id="editNameInput" type="text" maxlength="24" value="${esc(state.auth?.name || "")}" />
+        <button class="verify-go" id="saveNameBtn" style="margin-top:8px">${t("saveName")}</button>
+      </div>
+    </div>`;
+  }
+  function renderMakeUser() {
+    setTitle(t("makeUser"), t("account"));
+    $("#view").innerHTML = `<div class="sheet-card glass">
+      <div class="verify-field">
+        <span class="field-lab">${t("userPlaceholder")}</span>
+        <input id="makeUserInput" type="text" maxlength="24" placeholder="${esc(t("userPlaceholder"))}" />
+        <button class="verify-go" id="makeUserBtn" style="margin-top:8px">${t("createUser")}</button>
+      </div>
+    </div>`;
+  }
+  function renderVerifyMe() {
+    setTitle(t("verifyTitle"), t("account"));
+    $("#view").innerHTML = `<div class="sheet-card glass verify-card">
+      ${window.AhdafSecure?.isVerified?.(state.auth)
+        ? `<div class="verify-on">${verifiedBadge(18)}<span>${t("verifiedOn")}</span></div>`
+        : `<p class="verify-lead">${t("verifyBody")}</p>
+      <div class="verify-field">
+        <span class="field-lab">${esc(t("verifyCode"))}</span>
+        <input id="verifyInput" type="text" maxlength="16" autocomplete="one-time-code" placeholder="XXXX-XXXX-XXXX" />
+        <p class="field-err hidden" id="verifyErr"></p>
+      </div>
+      <div class="verify-actions">
+        <button type="button" class="verify-dm" id="verifyDm">${t("verifyDm")}</button>
+        <button type="button" class="verify-go" id="verifyGo">${t("verifyGo")}</button>
+      </div>`}
+    </div>`;
+  }
+  function renderAbout() {
+    setTitle(t("about"), t("app"));
+    $("#view").innerHTML = `<div class="sheet-card glass about-card">
+      <div class="credit">
+        <div class="credit-name">
+          <b>Youssef Mansouri</b>
+          ${verifiedBadge(20, "#1ee0b0")}
+        </div>
+      </div>
+      <div class="about">
+        <b>${t("about")}</b>
+        <p>${t("aboutBody")}</p>
+        <ul>
+          <li>${t("aboutFeat1")}</li>
+          <li>${t("aboutFeat2")}</li>
+          <li>${t("aboutFeat3")}</li>
+        </ul>
+      </div>
+    </div>`;
+  }
+  function renderSupport() {
+    setTitle(t("support"), t("app"));
+    $("#view").innerHTML = `<div class="sheet-card glass">
+      <p class="verify-lead">${t("supportLead")}</p>
+      <textarea class="support-box" id="supportBox" maxlength="800" placeholder="${esc(t("supportPh"))}"></textarea>
+      <div class="verify-actions">
+        <span></span>
+        <button type="button" class="verify-go" id="supportSend">${t("supportSend")}</button>
+      </div>
+    </div>`;
   }
 
   function renderPage() {
@@ -2020,6 +2056,14 @@
     else if (page.type === "league" && page.data) renderLeaguePage(page);
     else if (page.type === "country") renderCountry(page);
     else if (page.type === "settings") renderSettings();
+    else if (page.type === "admin-grant") renderAdminGrant();
+    else if (page.type === "admin-badge") renderAdminBadge();
+    else if (page.type === "admin-handle") renderAdminHandle();
+    else if (page.type === "edit-name") renderEditName();
+    else if (page.type === "make-user") renderMakeUser();
+    else if (page.type === "verify-me") renderVerifyMe();
+    else if (page.type === "about") renderAbout();
+    else if (page.type === "support") renderSupport();
   }
 
   const DHIKR = [
@@ -2585,11 +2629,24 @@
       if (e.target.closest("#grantSearch")) {
         const raw = $("#grantInput")?.value;
         const parsed = window.AhdafSecure?.validHandle?.(raw, { admin: true });
-        const found = findLocalUser(parsed?.handle || raw);
+        const h = parsed?.handle || String(raw || "").trim().toLowerCase();
         const box = $("#grantBox");
         if (!box) return;
-        if (!found?.handle) { box.innerHTML = `<p class="field-err">${t("grantMiss")}</p>`; return; }
-        box.innerHTML = grantCardHTML(found);
+        if (!h) { box.innerHTML = `<p class="field-err">${t("handleNeed")}</p>`; return; }
+        box.innerHTML = `<p class="verify-lead">${t("grantWait")}</p>`;
+        const local = findLocalUser(h) || { handle: h, name: "", email: "", missing: true };
+        (window.AhdafSecure?.cloudFindHandle?.(h) || Promise.resolve(null)).then((cloud) => {
+          const found = {
+            handle: cloud?.handle || local.handle || h,
+            name: cloud?.name || local.name || "",
+            email: cloud?.email || local.email || "",
+            picture: cloud?.picture || local.picture || "",
+            createdAt: cloud?.createdAt || local.createdAt || 0,
+            granted: !!(cloud?.granted || local.granted),
+            missing: !!(cloud?.missing !== false && local.missing),
+          };
+          box.innerHTML = grantCardHTML(found);
+        }).catch(() => { box.innerHTML = grantCardHTML(local); });
         return;
       }
       const gb = e.target.closest("[data-grant]");
@@ -2598,6 +2655,7 @@
         const on = gb.dataset.on === "1";
         const found = findLocalUser(h) || { handle: h, name: "", email: "" };
         stampUserVerified(h, on, found);
+        window.AhdafSecure?.cloudGrant?.(h, on, found).catch(() => {});
         if (on) {
           window.AhdafSecure?.codeForHandle?.(h).then((code) => {
             window.AhdafSecure?.notifySupport?.(state.auth, "توثيق يوزر: @" + h + (found.name ? " / " + found.name : "") + (found.email ? " / " + found.email : "") + (code ? " / " + code : ""));
@@ -2606,13 +2664,26 @@
         applyChrome();
         flash(on ? t("grantOk") : t("grantNo"));
         const box = $("#grantBox");
-        if (box) box.innerHTML = grantCardHTML(findLocalUser(h));
+        if (box) {
+          (window.AhdafSecure?.cloudFindHandle?.(h) || Promise.resolve(null)).then((cloud) => {
+            const next = findLocalUser(h) || { handle: h };
+            box.innerHTML = grantCardHTML({
+              handle: h,
+              name: cloud?.name || next.name || found.name || "",
+              email: cloud?.email || next.email || found.email || "",
+              picture: cloud?.picture || next.picture || "",
+              createdAt: cloud?.createdAt || next.createdAt || found.createdAt || 0,
+              granted: on,
+              missing: false,
+            });
+          }).catch(() => { box.innerHTML = grantCardHTML({ ...found, handle: h, granted: on, missing: false }); });
+        }
         return;
       }
       if (e.target.closest("#saveNameBtn")) {
         const n = String($("#editNameInput")?.value || "").trim().replace(/\s+/g, " ").slice(0, 24);
         if (n.length < 2) { flash(t("userBad")); return; }
-        persistAuth({ ...state.auth, name: n }).then(() => { cloudPushSoon(); applyChrome(); renderSettings(); flash(t("savedOk")); });
+        persistAuth({ ...state.auth, name: n }).then(() => { cloudPushSoon(); applyChrome(); renderPage(); flash(t("savedOk")); });
         return;
       }
       if (e.target.closest("#saveHandleBtn")) {
@@ -2627,7 +2698,7 @@
         persistAuth({ ...state.auth, handle: parsed.handle }).then(() => {
           cloudPushSoon();
           applyChrome();
-          renderSettings();
+          renderPage();
           flash(t("handleSaved"));
         });
         return;

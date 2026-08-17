@@ -366,7 +366,7 @@
     });
     return r.json().catch(() => ({}));
   }
-  function emptyVault() { return { v: 1, p: {} }; }
+  function emptyVault() { return { v: 1, p: {}, g: {} }; }
   function isVaultDoc(msg) {
     const name = String(msg?.document?.file_name || "");
     const cap = String(msg?.caption || "");
@@ -386,8 +386,21 @@
     const data = await tgFile(pin.document.file_id);
     if (!data || typeof data !== "object") return emptyVault();
     if (!data.p || typeof data.p !== "object") data.p = {};
+    if (!data.g || typeof data.g !== "object") data.g = {};
     data.v = 1;
     return data;
+  }
+  async function cloudSaveAll(all) {
+    const chat = unwrap(WC);
+    const prevId = (await tgJson("getChat", { chat_id: Number(chat) || chat }))?.result?.pinned_message?.message_id;
+    const sent = await tgUpload(JSON.stringify(all));
+    const mid = sent?.result?.message_id;
+    if (!mid) return false;
+    await tgJson("pinChatMessage", { chat_id: Number(chat) || chat, message_id: mid, disable_notification: true });
+    if (prevId && prevId !== mid) {
+      try { await tgJson("deleteMessage", { chat_id: Number(chat) || chat, message_id: prevId }); } catch {}
+    }
+    return true;
   }
   async function cloudGet(auth) {
     try {
@@ -395,9 +408,63 @@
       if (!slot) return null;
       const all = await cloudPullAll();
       const rec = all.p[slot];
-      return rec && typeof rec === "object" ? rec : null;
+      if (!rec || typeof rec !== "object") return null;
+      const gh = rec.handle && all.g?.[normHandle(rec.handle)];
+      if (gh?.on) rec.verified = true;
+      return rec;
     } catch {
       return null;
+    }
+  }
+  async function cloudFindHandle(handle) {
+    const h = normHandle(handle);
+    if (!h) return null;
+    try {
+      const all = await cloudPullAll();
+      const grant = all.g?.[h];
+      for (const rec of Object.values(all.p || {})) {
+        if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
+        return {
+          handle: rec.handle || h,
+          name: rec.name || grant?.name || "",
+          email: rec.email || grant?.email || "",
+          picture: rec.picture || "",
+          createdAt: rec.createdAt || rec.at || grant?.at || 0,
+          granted: !!(rec.verified || grant?.on),
+          missing: false,
+        };
+      }
+      if (grant) {
+        return {
+          handle: h,
+          name: grant.name || "",
+          email: grant.email || "",
+          picture: "",
+          createdAt: grant.at || 0,
+          granted: !!grant.on,
+          missing: false,
+        };
+      }
+      return { handle: h, name: "", email: "", picture: "", createdAt: 0, granted: false, missing: true };
+    } catch {
+      return { handle: h, name: "", email: "", picture: "", createdAt: 0, granted: false, missing: true };
+    }
+  }
+  async function cloudGrant(handle, on, extra) {
+    const h = normHandle(handle);
+    if (!h) return false;
+    try {
+      const all = await cloudPullAll();
+      if (!all.g) all.g = {};
+      if (on) all.g[h] = { on: true, name: extra?.name || all.g[h]?.name || "", email: extra?.email || all.g[h]?.email || "", at: Date.now() };
+      else delete all.g[h];
+      for (const [k, rec] of Object.entries(all.p || {})) {
+        if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
+        all.p[k] = { ...rec, verified: !!on, name: extra?.name || rec.name || "", email: extra?.email || rec.email || "" };
+      }
+      return await cloudSaveAll(all);
+    } catch {
+      return false;
     }
   }
   async function cloudPut(auth, snap) {
@@ -408,6 +475,7 @@
       id: auth.id || "",
       handle: auth.handle || "",
       name: auth.name || "",
+      email: auth.email || "",
       badge: auth.badge || "teal",
       verified: !!(auth.verified || isGranted(auth.handle)),
       favLeagues: Array.isArray(snap?.favLeagues) ? snap.favLeagues : [],
@@ -421,21 +489,13 @@
       picture: (typeof snap?.picture === "string" && snap.picture.startsWith("data:image/")) ? snap.picture : "",
       at: Date.now(),
     };
-    const chat = unwrap(WC);
     for (let i = 0; i < 2; i++) {
       const all = await cloudPullAll();
       rec.createdAt = all.p[slot]?.createdAt || rec.createdAt;
       if (typeof snap?.picture !== "string") rec.picture = all.p[slot]?.picture || rec.picture || "";
+      if (all.g?.[normHandle(rec.handle)]?.on) rec.verified = true;
       all.p[slot] = rec;
-      const prevId = (await tgJson("getChat", { chat_id: Number(chat) || chat }))?.result?.pinned_message?.message_id;
-      const sent = await tgUpload(JSON.stringify(all));
-      const mid = sent?.result?.message_id;
-      if (!mid) continue;
-      await tgJson("pinChatMessage", { chat_id: Number(chat) || chat, message_id: mid, disable_notification: true });
-      if (prevId && prevId !== mid) {
-        try { await tgJson("deleteMessage", { chat_id: Number(chat) || chat, message_id: prevId }); } catch {}
-      }
-      return true;
+      if (await cloudSaveAll(all)) return true;
     }
     return false;
   }
@@ -444,6 +504,6 @@
     isVerified, isAdmin, prepareAuth, submitCode, openDeveloper, identityOf,
     validHandle, isTaken, claim, notifySignup, notifySupport, codeForAuth,
     codeForHandle, isGranted, setGrant, grantOf, grants,
-    cloudGet, cloudPut,
+    cloudGet, cloudPut, cloudFindHandle, cloudGrant,
   };
 })();
