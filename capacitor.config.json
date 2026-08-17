@@ -9,6 +9,11 @@
     "CapacitorHttp": {
       "enabled": true
     },
+    "GoogleAuth": {
+      "scopes": ["profile", "email", "https://www.googleapis.com/auth/drive.appdata"],
+      "serverClientId": "",
+      "forceCodeForRefreshToken": true
+    },
     "SplashScreen": {
       "launchShowDuration": 0
     }

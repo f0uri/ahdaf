@@ -18,4 +18,5 @@ ios/App/build/
 *.jks
 *.keystore
 !debug.keystore
+!signing/ahdaf-debug.keystore
 .capacitor/

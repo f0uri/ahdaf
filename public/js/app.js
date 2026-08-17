@@ -369,6 +369,7 @@
 
   function saveFav() {
     localStorage.setItem(storeKey("ahdaf-fav-l"), JSON.stringify(state.favLeagues));
+    cloudPushSoon();
   }
   function isFav(key) {
     return state.favLeagues.includes(key);
@@ -390,6 +391,7 @@
     if (isFavTeam(sid)) state.favTeams = state.favTeams.filter((x) => String(x.id) !== sid);
     else state.favTeams.unshift({ id: sid, name: name || "", img: img || "" });
     localStorage.setItem(storeKey("ahdaf-fav-t"), JSON.stringify(state.favTeams));
+    cloudPushSoon();
   }
   function followedStages(stages) {
     return (stages || []).filter((s) =>
@@ -1463,7 +1465,11 @@
   function persistAuth(auth) {
     state.auth = auth;
     if (auth) localStorage.setItem("ahdaf-auth", JSON.stringify(auth));
-    else localStorage.removeItem("ahdaf-auth");
+    else {
+      localStorage.removeItem("ahdaf-auth");
+      localStorage.removeItem("ahdaf-gtoken");
+      state.cloudToken = "";
+    }
     state.favLeagues = readFavs();
     state.favTeams = readTeams();
   }
@@ -1473,34 +1479,68 @@
     renderPage();
     startDhikr();
   }
+  function snapshot() {
+    return {
+      favLeagues: state.favLeagues,
+      favTeams: state.favTeams,
+      theme: state.theme,
+      lang: state.lang,
+      dhikr: state.dhikr,
+    };
+  }
+  function applyRemote(remote) {
+    if (!remote || typeof remote !== "object") return;
+    if (Array.isArray(remote.favLeagues) && remote.favLeagues.length) state.favLeagues = remote.favLeagues;
+    if (Array.isArray(remote.favTeams)) state.favTeams = remote.favTeams;
+    if (remote.theme) state.theme = remote.theme;
+    if (remote.lang) state.lang = remote.lang;
+    if (typeof remote.dhikr === "boolean") state.dhikr = remote.dhikr;
+    saveFav();
+    localStorage.setItem(storeKey("ahdaf-fav-t"), JSON.stringify(state.favTeams));
+    localStorage.setItem("ahdaf-theme", state.theme);
+    localStorage.setItem("ahdaf-lang", state.lang);
+    localStorage.setItem("ahdaf-dhikr", state.dhikr ? "1" : "0");
+  }
+  function cloudPushSoon() {
+    clearTimeout(cloudPushSoon.t);
+    cloudPushSoon.t = setTimeout(async () => {
+      if (!state.cloudToken || !window.AhdafCloud) return;
+      try { await window.AhdafCloud.push(state.cloudToken, snapshot()); } catch {}
+    }, 700);
+  }
   async function enterWithGoogle() {
     tap();
-    let profile = null;
-    try {
-      const plugin = window.Capacitor?.Plugins?.GoogleAuth;
-      if (plugin?.signIn) {
-        const user = await plugin.signIn();
-        profile = {
-          id: "g:" + (user.id || user.email || "user"),
-          name: user.name || user.displayName || "Google",
-          email: user.email || "",
-          mode: "google",
-        };
-      }
-    } catch {}
-    if (!profile) {
-      profile = { id: "g:device", name: "Google", mode: "google" };
+    if (!window.AhdafCloud?.ready()) {
       const toast = $("#toast");
       if (toast) {
         toast.textContent = t("googleSoon");
         toast.classList.add("on");
-        setTimeout(() => toast.classList.remove("on"), 4200);
+        setTimeout(() => toast.classList.remove("on"), 5000);
+      }
+      return;
+    }
+    try {
+      const session = await window.AhdafCloud.signIn();
+      state.cloudToken = session.access;
+      localStorage.setItem("ahdaf-gtoken", session.access);
+      persistAuth(session.profile);
+      try {
+        const remote = await window.AhdafCloud.pull(session.access);
+        if (remote) applyRemote(remote);
+        else await window.AhdafCloud.push(session.access, snapshot());
+      } catch {}
+      $("#authLayer")?.classList.add("hidden");
+      applyChrome();
+      renderPage();
+      startDhikr();
+    } catch (e) {
+      const toast = $("#toast");
+      if (toast) {
+        toast.textContent = t("googleSoon");
+        toast.classList.add("on");
+        setTimeout(() => toast.classList.remove("on"), 5000);
       }
     }
-    persistAuth(profile);
-    $("#authLayer")?.classList.add("hidden");
-    renderPage();
-    startDhikr();
   }
   function signOut() {
     persistAuth(null);
