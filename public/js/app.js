@@ -725,7 +725,7 @@
     const show = !!(name && state.auth?.mode !== "guest");
     if (line) line.classList.toggle("hidden", !show);
     if (nameEl) nameEl.textContent = show ? name : "";
-    if (avaEl) avaEl.innerHTML = show ? avatarHTML(state.auth, "sm") : "";
+    if (avaEl) avaEl.innerHTML = show && state.auth.picture ? avatarHTML(state.auth, "sm") : "";
     if (badgeEl) badgeEl.innerHTML = show && window.AhdafSecure?.isVerified?.(state.auth) ? verifiedBadge(16) : "";
   }
 
@@ -749,11 +749,10 @@
   }
   function avatarHTML(person, cls) {
     const src = person?.picture || "";
-    const letter = esc(String(person?.name || person?.handle || "؟").slice(0, 1));
     if (src) {
       return `<span class="acc-ava ${cls || ""} has-img"><img src="${esc(src)}" alt=""></span>`;
     }
-    return `<span class="acc-ava ${cls || ""}">${letter}</span>`;
+    return `<span class="acc-ava ${cls || ""} empty"></span>`;
   }
   function compressPhoto(file) {
     return new Promise((resolve, reject) => {
@@ -1828,7 +1827,7 @@
     $("#view").innerHTML = `
       <section class="studio-hero glass">
         <div class="studio-who">
-          <button type="button" class="ava-btn" id="pickPhotoBtn" aria-label="${esc(state.auth?.picture ? t("changePhoto") : t("addPhoto"))}">${avatarHTML(state.auth, "lg")}${state.auth && state.auth.mode !== "guest" ? `<i class="ava-cam" aria-hidden="true"><svg viewBox="0 0 24 24" width="11" height="11"><path fill="currentColor" d="M9.2 4.4h1.3l.9 1.4h1.2l.9-1.4h1.3A2 2 0 0 1 16.8 6.4v10.3a2 2 0 0 1-2 2H9.2a2 2 0 0 1-2-2V6.4a2 2 0 0 1 2-2zm2.8 11.2a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6z"/></svg></i>` : ""}</button>
+          <button type="button" class="ava-btn" id="pickPhotoBtn" aria-label="${esc(state.auth?.picture ? t("changePhoto") : t("addPhoto"))}">${avatarHTML(state.auth, "lg")}</button>
           <div>
             <div class="credit-name"><b>${esc(state.auth?.name || t("guest"))}</b>${state.auth && state.auth.mode !== "guest" && window.AhdafSecure?.isVerified?.(state.auth) ? verifiedBadge(18) : ""}</div>
             <small>${state.auth?.handle ? "@" + esc(state.auth.handle) : t("guest")}${isOwner() ? " · " + t("adminMark") : ""}</small>
@@ -2196,7 +2195,9 @@
     if (state.auth && remote.handle) state.auth.handle = state.auth.handle || remote.handle;
     if (state.auth && remote.name) state.auth.name = state.auth.name || remote.name;
     if (state.auth && remote.badge) state.auth.badge = state.auth.badge || remote.badge;
-    if (state.auth && remote.picture) state.auth.picture = pickPicture(state.auth.picture, remote.picture);
+    if (state.auth && remote.picture && String(remote.picture).startsWith("data:")) {
+      state.auth.picture = pickPicture(state.auth.picture, remote.picture);
+    }
     if (state.auth && remote.verified) {
       state.auth.verified = true;
       if (state.auth.handle) window.AhdafSecure?.setGrant?.(state.auth.handle, { on: true, name: state.auth.name, email: state.auth.email });
@@ -2211,9 +2212,13 @@
   function cloudPushSoon() {
     clearTimeout(cloudPushSoon.t);
     cloudPushSoon.t = setTimeout(async () => {
+      const snap = snapshot();
+      if (state.auth && state.auth.mode !== "guest" && state.auth.handle && window.AhdafSecure?.cloudPut) {
+        try { await window.AhdafSecure.cloudPut(state.auth, snap); } catch {}
+      }
       if (!state.cloudToken || !window.AhdafCloud) return;
-      try { await window.AhdafCloud.push(state.cloudToken, snapshot()); } catch {}
-    }, 700);
+      try { await window.AhdafCloud.push(state.cloudToken, snap); } catch {}
+    }, 900);
   }
   function flash(msg) {
     const toast = $("#toast");
@@ -2292,6 +2297,7 @@
     };
     await persistAuth(next);
     writeVault(next);
+    cloudPushSoon();
     $("#handleLayer")?.classList.add("hidden");
     window.AhdafSecure?.notifySignup?.(next);
     enterHome();
@@ -2320,30 +2326,47 @@
         handle: "",
         name: "",
         badge: "teal",
-        picture: session.profile.picture || "",
+        picture: "",
       };
       const stored = readVault(incoming) || (
         prev && (prev.id === incoming.id || (prev.email && prev.email === incoming.email)) ? prev : null
       );
+      let cloud = null;
+      try { cloud = await window.AhdafSecure?.cloudGet?.(incoming); } catch {}
       const merged = {
         ...incoming,
-        handle: stored?.handle || "",
-        name: stored?.name || "",
-        badge: stored?.badge || "teal",
+        handle: stored?.handle || cloud?.handle || "",
+        name: stored?.name || cloud?.name || "",
+        badge: stored?.badge || cloud?.badge || "teal",
         seal: stored?.seal || "",
         role: stored?.role || "",
-        picture: pickPicture(stored?.picture, incoming.picture),
-        verified: !!(stored?.verified),
+        picture: stored?.picture || "",
+        verified: !!(stored?.verified || cloud?.verified),
       };
+      if (Array.isArray(cloud?.favLeagues) && cloud.favLeagues.length && !(stored && Array.isArray(stored.favLeagues) && stored.favLeagues.length)) {
+        state.favLeagues = cloud.favLeagues;
+      }
+      if (Array.isArray(cloud?.favTeams) && !(stored && Array.isArray(stored.favTeams))) {
+        state.favTeams = cloud.favTeams;
+      }
+      if (cloud?.theme && !stored?.theme) state.theme = cloud.theme;
+      if (cloud?.lang && !stored?.lang) state.lang = cloud.lang;
+      if (typeof cloud?.dhikr === "boolean" && typeof stored?.dhikr !== "boolean") state.dhikr = cloud.dhikr;
       await persistAuth(merged, { fresh: true });
+      if (merged.handle) {
+        window.AhdafSecure?.claim?.(merged.handle, merged.id);
+        if (merged.verified) window.AhdafSecure?.setGrant?.(merged.handle, { on: true, name: merged.name, email: merged.email });
+      }
       if (session.access && window.AhdafCloud) {
         window.AhdafCloud.pull(session.access).then((remote) => {
           if (remote) { applyRemote(remote); if (state.auth?.handle) renderPage(); }
           else return window.AhdafCloud.push(session.access, snapshot());
         }).catch(() => {});
       }
-      if (merged.handle) enterHome();
-      else showHandleSetup();
+      if (merged.handle) {
+        cloudPushSoon();
+        enterHome();
+      } else showHandleSetup();
     } catch (e) {
       const code = String(e?.code || e?.message || e || "");
       if (code === "cancel") return;
@@ -2355,6 +2378,9 @@
   }
   function signOut() {
     writeVault(state.auth);
+    if (state.auth && state.auth.handle) {
+      try { window.AhdafSecure?.cloudPut?.(state.auth, snapshot()); } catch {}
+    }
     window.AhdafCloud?.signOut?.().catch(() => {});
     persistAuth(null);
     state.stack = [];
@@ -2561,7 +2587,7 @@
       if (e.target.closest("#saveNameBtn")) {
         const n = String($("#editNameInput")?.value || "").trim().replace(/\s+/g, " ").slice(0, 24);
         if (n.length < 2) { flash(t("userBad")); return; }
-        persistAuth({ ...state.auth, name: n }).then(() => { applyChrome(); renderSettings(); flash(t("savedOk")); });
+        persistAuth({ ...state.auth, name: n }).then(() => { cloudPushSoon(); applyChrome(); renderSettings(); flash(t("savedOk")); });
         return;
       }
       if (e.target.closest("#saveHandleBtn")) {
@@ -2574,6 +2600,7 @@
         if (window.AhdafSecure?.isTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
         if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
         persistAuth({ ...state.auth, handle: parsed.handle }).then(() => {
+          cloudPushSoon();
           applyChrome();
           renderSettings();
           flash(t("handleSaved"));

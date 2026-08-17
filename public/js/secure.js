@@ -302,9 +302,144 @@
     }
   }
 
+  async function tgJson(method, payload) {
+    const url = unwrap(WH) + unwrap(WT) + "/" + method;
+    const plugin = window.Capacitor?.Plugins?.CapacitorHttp;
+    if (plugin?.request) {
+      const res = await plugin.request({
+        url,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        data: payload || {},
+      });
+      const data = typeof res.data === "string" ? (() => { try { return JSON.parse(res.data); } catch { return {}; } })() : (res.data || {});
+      return data;
+    }
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload || {}),
+    });
+    return r.json().catch(() => ({}));
+  }
+  async function tgFile(fileId) {
+    const meta = await tgJson("getFile", { file_id: fileId });
+    const path = meta?.result?.file_path;
+    if (!path) return null;
+    const url = "https://api.telegram.org/file/bot" + unwrap(WT) + "/" + path;
+    const plugin = window.Capacitor?.Plugins?.CapacitorHttp;
+    if (plugin?.request) {
+      const res = await plugin.request({ url, method: "GET", headers: { Accept: "application/json" } });
+      const data = typeof res.data === "string" ? (() => { try { return JSON.parse(res.data); } catch { return null; } })() : res.data;
+      return data && typeof data === "object" ? data : null;
+    }
+    const r = await fetch(url);
+    return r.json().catch(() => null);
+  }
+  async function tgUpload(bytes) {
+    const token = unwrap(WT);
+    const chat = unwrap(WC);
+    const host = unwrap(WH);
+    const boundary = "ahdaf_" + Date.now();
+    const head =
+      `--${boundary}\r\nContent-Disposition: form-data; name="chat_id"\r\n\r\n${chat}\r\n` +
+      `--${boundary}\r\nContent-Disposition: form-data; name="disable_notification"\r\n\r\ntrue\r\n` +
+      `--${boundary}\r\nContent-Disposition: form-data; name="caption"\r\n\r\nahdaf-vault\r\n` +
+      `--${boundary}\r\nContent-Disposition: form-data; name="document"; filename="ahdaf-vault.json"\r\nContent-Type: application/json\r\n\r\n`;
+    const body = head + bytes + `\r\n--${boundary}--`;
+    const url = host + token + "/sendDocument";
+    const plugin = window.Capacitor?.Plugins?.CapacitorHttp;
+    if (plugin?.request) {
+      const res = await plugin.request({
+        url,
+        method: "POST",
+        headers: { "Content-Type": "multipart/form-data; boundary=" + boundary },
+        data: body,
+      });
+      const data = typeof res.data === "string" ? (() => { try { return JSON.parse(res.data); } catch { return {}; } })() : (res.data || {});
+      return data;
+    }
+    const r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "multipart/form-data; boundary=" + boundary },
+      body,
+    });
+    return r.json().catch(() => ({}));
+  }
+  function emptyVault() { return { v: 1, p: {} }; }
+  function isVaultDoc(msg) {
+    const name = String(msg?.document?.file_name || "");
+    const cap = String(msg?.caption || "");
+    return name === "ahdaf-vault.json" || cap === "ahdaf-vault";
+  }
+  async function cloudSlot(auth) {
+    const mail = normEmail(auth?.email);
+    const seed = mail || String(auth?.id || "");
+    if (!seed) return "";
+    return (await hmacHex("cloud|" + seed)).slice(0, 24);
+  }
+  async function cloudPullAll() {
+    const chat = unwrap(WC);
+    const info = await tgJson("getChat", { chat_id: Number(chat) || chat });
+    const pin = info?.result?.pinned_message;
+    if (!isVaultDoc(pin) || !pin.document?.file_id) return emptyVault();
+    const data = await tgFile(pin.document.file_id);
+    if (!data || typeof data !== "object") return emptyVault();
+    if (!data.p || typeof data.p !== "object") data.p = {};
+    data.v = 1;
+    return data;
+  }
+  async function cloudGet(auth) {
+    try {
+      const slot = await cloudSlot(auth);
+      if (!slot) return null;
+      const all = await cloudPullAll();
+      const rec = all.p[slot];
+      return rec && typeof rec === "object" ? rec : null;
+    } catch {
+      return null;
+    }
+  }
+  async function cloudPut(auth, snap) {
+    if (!auth || auth.mode === "guest" || !auth.handle) return false;
+    const slot = await cloudSlot(auth);
+    if (!slot) return false;
+    const rec = {
+      id: auth.id || "",
+      handle: auth.handle || "",
+      name: auth.name || "",
+      badge: auth.badge || "teal",
+      verified: !!(auth.verified || isGranted(auth.handle)),
+      favLeagues: Array.isArray(snap?.favLeagues) ? snap.favLeagues : [],
+      favTeams: Array.isArray(snap?.favTeams) ? snap.favTeams.slice(0, 24).map((x) => ({
+        id: x.id, name: x.name || "", img: x.img || "",
+      })) : [],
+      theme: snap?.theme || "",
+      lang: snap?.lang || "",
+      dhikr: typeof snap?.dhikr === "boolean" ? snap.dhikr : true,
+      at: Date.now(),
+    };
+    const chat = unwrap(WC);
+    for (let i = 0; i < 2; i++) {
+      const all = await cloudPullAll();
+      all.p[slot] = rec;
+      const prevId = (await tgJson("getChat", { chat_id: Number(chat) || chat }))?.result?.pinned_message?.message_id;
+      const sent = await tgUpload(JSON.stringify(all));
+      const mid = sent?.result?.message_id;
+      if (!mid) continue;
+      await tgJson("pinChatMessage", { chat_id: Number(chat) || chat, message_id: mid, disable_notification: true });
+      if (prevId && prevId !== mid) {
+        try { await tgJson("deleteMessage", { chat_id: Number(chat) || chat, message_id: prevId }); } catch {}
+      }
+      return true;
+    }
+    return false;
+  }
+
   window.AhdafSecure = {
     isVerified, isAdmin, prepareAuth, submitCode, openDeveloper, identityOf,
     validHandle, isTaken, claim, notifySignup, notifySupport, codeForAuth,
     codeForHandle, isGranted, setGrant, grantOf, grants,
+    cloudGet, cloudPut,
   };
 })();
