@@ -2103,6 +2103,7 @@
     else if (page.type === "league" && page.data) renderLeaguePage(page);
     else if (page.type === "country") renderCountry(page);
     else if (page.type === "settings") renderSettings();
+    else if (page.type === "admin-inbox") renderAdminInbox();
     else if (page.type === "admin-grant") renderAdminGrant();
     else if (page.type === "admin-badge") renderAdminBadge();
     else if (page.type === "admin-handle") renderAdminHandle();
