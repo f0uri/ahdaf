@@ -132,6 +132,8 @@
       supportSend: "إرسال",
       supportOk: "وصلت رسالتك",
       supportShort: "اكتب تفاصيل أكثر قليلاً",
+      supportHint: "اضغط لفتح نموذج الدعم",
+      savedOk: "تم الحفظ",
       ameen: "آمين",
       remembrance: "ذكر",
       followHint: "تابع فرقك لتظهر أولاً في الرئيسية.",
@@ -288,6 +290,8 @@
       supportSend: "Send",
       supportOk: "Message sent",
       supportShort: "Please write a bit more",
+      supportHint: "Tap to open the support form",
+      savedOk: "Saved",
       verifyBody: "Message the developer your username to receive your unique code.",
       ameen: "Ameen",
       remembrance: "Remembrance",
@@ -416,6 +420,37 @@
     هولندا: "nl", بلجيكا: "be", المغرب: "ma",
   };
 
+  const COUNTRY_AR = {
+    morocco: "المغرب", england: "إنجلترا", spain: "إسبانيا", italy: "إيطاليا",
+    germany: "ألمانيا", france: "فرنسا", egypt: "مصر", "saudi-arabia": "السعودية",
+    holland: "هولندا", netherlands: "هولندا", portugal: "البرتغال", usa: "أمريكا",
+    "united-states": "أمريكا", brazil: "البرازيل", mexico: "المكسيك", turkey: "تركيا",
+    turkiye: "تركيا", argentina: "الأرجنتين", belgium: "بلجيكا", scotland: "اسكتلندا",
+    tunisia: "تونس", algeria: "الجزائر", nigeria: "نيجيريا", japan: "اليابان",
+    china: "الصين", australia: "أستراليا", canada: "كندا", denmark: "الدنمارك",
+    sweden: "السويد", norway: "النرويج", switzerland: "سويسرا", austria: "النمسا",
+    greece: "اليونان", poland: "بولندا", ukraine: "أوكرانيا", russia: "روسيا",
+    croatia: "كرواتيا", serbia: "صربيا", romania: "رومانيا", ireland: "إيرلندا",
+    wales: "ويلز", colombia: "كولومبيا", chile: "تشيلي", peru: "بيرو",
+    ecuador: "الإكوادور", uruguay: "الأوروغواي", qatar: "قطر", iraq: "العراق",
+    jordan: "الأردن", lebanon: "لبنان", kuwait: "الكويت", bahrain: "البحرين",
+    oman: "عُمان", yemen: "اليمن", palestine: "فلسطين", sudan: "السودان",
+    libya: "ليبيا", senegal: "السنغال", ghana: "غانا", "united-arab-emirates": "الإمارات",
+    uae: "الإمارات", "south-africa": "جنوب أفريقيا", "south-korea": "كوريا الجنوبية",
+    korea: "كوريا الجنوبية", iran: "إيران", syria: "سوريا", india: "الهند",
+    "champions-league": "أوروبا", "europa-league": "أوروبا", uefa: "أوروبا",
+    fifa: "دولي", intl: "دولي", international: "دولي", africa: "أفريقيا",
+    "club-friendlies": "ودية", friendlies: "ودية", "world-cup": "دولي",
+    "nations-league": "أوروبا", euro: "أوروبا", "copa-america": "أمريكا الجنوبية",
+    "africa-cup": "أفريقيا", afcon: "أفريقيا", "czech-republic": "التشيك",
+    czechia: "التشيك", hungary: "المجر", slovakia: "سلوفاكيا", slovenia: "سلوفينيا",
+    bulgaria: "بلغاريا", finland: "فنلندا", iceland: "آيسلندا", "hong-kong": "هونغ كونغ",
+    "ivory-coast": "ساحل العاج", cameroon: "الكاميرون", mali: "مالي",
+    "north-macedonia": "مقدونيا", albania: "ألبانيا", "bosnia-and-herzegovina": "البوسنة",
+    montenegro: "الجبل الأسود", israel: "إسرائيل", "new-zealand": "نيوزيلندا",
+    "united-kingdom": "بريطانيا", uk: "بريطانيا", "northern-ireland": "إيرلندا الشمالية",
+  };
+
   function readAuth() {
     try { return JSON.parse(localStorage.getItem("ahdaf-auth") || "null"); } catch { return null; }
   }
@@ -450,6 +485,66 @@
       return Array.isArray(raw) ? raw : [];
     } catch { return []; }
   }
+  function vaultAll() {
+    try { return JSON.parse(localStorage.getItem("ahdaf-vault") || "{}"); } catch { return {}; }
+  }
+  function vaultIds(auth) {
+    const ids = [];
+    const mail = String(auth?.email || "").trim().toLowerCase();
+    if (mail) ids.push("m:" + mail);
+    if (auth?.id && auth.id !== "guest" && auth.id !== "pending") ids.push("i:" + auth.id);
+    return ids;
+  }
+  function readVault(auth) {
+    const all = vaultAll();
+    for (const id of vaultIds(auth)) {
+      if (all[id] && typeof all[id] === "object") return all[id];
+    }
+    return null;
+  }
+  function writeVault(auth) {
+    if (!auth || auth.mode === "guest") return;
+    const ids = vaultIds(auth);
+    if (!ids.length) return;
+    const all = vaultAll();
+    const prev = readVault(auth) || {};
+    const rec = {
+      ...prev,
+      id: auth.id,
+      email: auth.email || prev.email || "",
+      handle: auth.handle || "",
+      name: auth.name || "",
+      badge: auth.badge || prev.badge || "teal",
+      mode: auth.mode,
+      seal: auth.seal || "",
+      role: auth.role || "",
+      favLeagues: Array.isArray(state.favLeagues) ? state.favLeagues : prev.favLeagues,
+      favTeams: Array.isArray(state.favTeams) ? state.favTeams : prev.favTeams,
+      theme: state.theme,
+      lang: state.lang,
+      dhikr: state.dhikr,
+      savedAt: Date.now(),
+    };
+    for (const id of ids) all[id] = rec;
+    try { localStorage.setItem("ahdaf-vault", JSON.stringify(all)); } catch {}
+  }
+  function applyVault(auth) {
+    const rec = readVault(auth);
+    if (!rec) return auth;
+    if (Array.isArray(rec.favLeagues) && rec.favLeagues.length) state.favLeagues = rec.favLeagues;
+    if (Array.isArray(rec.favTeams)) state.favTeams = rec.favTeams;
+    if (rec.theme) state.theme = rec.theme;
+    if (rec.lang) state.lang = rec.lang;
+    if (typeof rec.dhikr === "boolean") state.dhikr = rec.dhikr;
+    return {
+      ...auth,
+      handle: auth.handle || rec.handle || "",
+      name: auth.name || rec.name || "",
+      badge: auth.badge || rec.badge || "teal",
+      seal: auth.seal || rec.seal || "",
+      role: auth.role || rec.role || "",
+    };
+  }
 
   const state = {
     lang: localStorage.getItem("ahdaf-lang") || "ar",
@@ -473,6 +568,8 @@
     cache: {},
     liveTimer: null,
     cloudToken: localStorage.getItem("ahdaf-gtoken") || "",
+    owner: false,
+    supportOpen: false,
   };
 
   const t = (k) => (I18N[state.lang] && I18N[state.lang][k]) || k;
@@ -534,6 +631,7 @@
 
   function saveFav() {
     localStorage.setItem(storeKey("ahdaf-fav-l"), JSON.stringify(state.favLeagues));
+    writeVault(state.auth);
     cloudPushSoon();
   }
   function isFav(key) {
@@ -556,6 +654,7 @@
     if (isFavTeam(sid)) state.favTeams = state.favTeams.filter((x) => String(x.id) !== sid);
     else state.favTeams.unshift({ id: sid, name: name || "", img: img || "" });
     localStorage.setItem(storeKey("ahdaf-fav-t"), JSON.stringify(state.favTeams));
+    writeVault(state.auth);
     cloudPushSoon();
   }
   function followedStages(stages) {
@@ -805,11 +904,24 @@
         den:"dk", swe:"se", nor:"no", fin:"fi", isl:"is" };
       code = iso3[rawCcd] || "";
     }
-    const letters = esc((rawCcd || rawName || "?").replace(/[^a-z\u0600-\u06ff]/gi, "").slice(0, 2).toUpperCase() || "?");
-    const fallback = `<span class="flag-fallback">${letters}</span>`;
-    if (!code) return fallback;
+    if (!code) return `<span class="flag flag-gap" aria-hidden="true"></span>`;
     const safe = String(code).replace(/[^a-z0-9-]/gi, "");
-    return `<img class="flag" alt="" src="https://flagcdn.com/w40/${safe}.png" onerror="this.outerHTML='${fallback.replace(/'/g, "")}'">`;
+    const src = isNative()
+      ? `https://flagcdn.com/w40/${safe}.png`
+      : `/flag?c=${encodeURIComponent(safe)}`;
+    return `<img class="flag" alt="" src="${src}" onerror="this.classList.add('off')">`;
+  }
+
+  function prettyCcd(s) {
+    return String(s || "").replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+  function countryLabel(ccd, cnm) {
+    const key = String(ccd || "").toLowerCase().trim();
+    const fromList = (state.countries || []).find((c) => String(c.ccd || "").toLowerCase() === key);
+    if (state.lang === "ar") {
+      return COUNTRY_AR[key] || fromList?.nameAr || fromList?.name || cnm || "";
+    }
+    return fromList?.name || cnm || prettyCcd(key);
   }
 
   async function api(path) {
@@ -1002,13 +1114,15 @@
       .map((s) => {
         const key = leagueKey(s);
         const name = isFriendly(s) ? t("friendlies") : state.lang === "ar" ? s.CompN || s.Snm : s.Snm || s.CompN;
+        const nation = isFriendly(s) ? (state.lang === "ar" ? "ودية" : "International") : countryLabel(s.Ccd, s.Cnm);
         return `<section class="league">
           <div class="league-h">
-            <button class="league-open" data-ccd="${esc(s.Ccd)}" data-scd="${esc(s.Scd)}" data-cid="${esc(s.CompId || s.Sid)}" data-name="${esc(name)}">
+            <button class="league-open flag-only" data-ccd="${esc(s.Ccd)}" data-scd="${esc(s.Scd)}" data-cid="${esc(s.CompId || s.Sid)}" data-name="${esc(name)}">
               ${flag(s.Ccd, s.Cnm)}
             </button>
             <button class="meta league-open" data-ccd="${esc(s.Ccd)}" data-scd="${esc(s.Scd)}" data-cid="${esc(s.CompId || s.Sid)}" data-name="${esc(name)}">
               <b>${esc(name)}</b>
+              ${nation ? `<span>${esc(nation)}</span>` : ""}
             </button>
             <button class="star ${isFav(key) ? "on" : ""}" data-key="${esc(key)}" aria-label="fav">★</button>
           </div>
@@ -1463,6 +1577,7 @@
       html += items
         .map(
           (c) => `<button class="list-row league-open" data-ccd="${esc(c.ccd)}" data-scd="${esc(c.scd)}" data-cid="${esc(c.CompId)}" data-name="${esc(c.name || c.stage)}">
+            ${flag(c.ccd, c.country)}
             <span style="flex:1;text-align:start;font-weight:550">${esc(c.stage || c.name)}</span>
           </button>`
         )
@@ -1510,7 +1625,7 @@
         <div class="settings-row account-row">
           <div>
             <b>${t("account")}</b>
-            <small>${esc(state.auth?.name || t("guest"))}${state.auth?.handle ? " · @" + esc(state.auth.handle) : ""}${state.auth?.email ? " · " + esc(state.auth.email) : ""}${isOwner() ? " · " + t("adminMark") : ""}</small>
+            <small>${esc(state.auth?.name || t("guest"))}${state.auth?.handle ? " · @" + esc(state.auth.handle) : ""}${isOwner() ? " · " + t("adminMark") : ""}</small>
           </div>
           ${state.auth ? `<button class="chip" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on auth-google mini" id="authGoogle"><span class="g-logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.97 6.97 0 0 1 5.48 12c0-.72.12-1.43.36-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span><span>${t("googleBtn")}</span></button>`}
         </div>
@@ -1582,13 +1697,15 @@
       </div>
       <div class="sheet-card glass verify-card">
         <div class="about">
-          <b>${t("support")}</b>
-          <p class="verify-lead">${t("supportLead")}</p>
+          <button type="button" class="settings-row support-toggle" id="supportOpen">
+            <div><b>${t("support")}</b><small>${t("supportHint")}</small></div>
+          </button>
+          ${state.supportOpen ? `<p class="verify-lead">${t("supportLead")}</p>
           <textarea class="support-box" id="supportBox" maxlength="800" placeholder="${esc(t("supportPh"))}"></textarea>
           <div class="verify-actions">
             <span></span>
             <button type="button" class="verify-go" id="supportSend">${t("supportSend")}</button>
-          </div>
+          </div>` : ""}
         </div>
       </div>
     `;
@@ -1715,27 +1832,46 @@
     try { playClickFile(); } catch { synthClick(); }
   }
 
-  function promoteAdmin(auth) {
-    if (!auth || !window.AhdafSecure?.isAdmin?.(auth)) return auth;
-    const next = { ...auth, admin: true, badge: auth.badge || "teal" };
-    try {
-      localStorage.setItem("ahdaf-vok", "1");
-      const id = window.AhdafSecure.identityOf?.(next);
-      if (id) localStorage.setItem("ahdaf-vbind", id);
-    } catch {}
-    return next;
-  }
-  function persistAuth(auth) {
-    if (auth) auth = promoteAdmin(auth);
+  async function persistAuth(auth, opts) {
+    if (auth) {
+      auth = applyVault(auth);
+      if (window.AhdafSecure?.prepareAuth) {
+        try { auth = await window.AhdafSecure.prepareAuth(auth, opts); } catch {}
+      }
+      if (auth.role === "o") {
+        try {
+          localStorage.setItem("ahdaf-vok", "1");
+          const id = window.AhdafSecure.identityOf?.(auth);
+          if (id) localStorage.setItem("ahdaf-vbind", id);
+        } catch {}
+      }
+    }
     state.auth = auth;
-    if (auth) localStorage.setItem("ahdaf-auth", JSON.stringify(auth));
-    else {
+    state.owner = !!(auth && auth.role === "o" && auth.mode === "google");
+    if (auth) {
+      localStorage.setItem("ahdaf-auth", JSON.stringify(auth));
+      if (auth.mode !== "guest") {
+        localStorage.setItem(storeKey("ahdaf-fav-l"), JSON.stringify(state.favLeagues));
+        localStorage.setItem(storeKey("ahdaf-fav-t"), JSON.stringify(state.favTeams));
+        writeVault(auth);
+      }
+    } else {
       localStorage.removeItem("ahdaf-auth");
       localStorage.removeItem("ahdaf-gtoken");
       state.cloudToken = "";
+      state.owner = false;
     }
-    state.favLeagues = readFavs();
-    state.favTeams = readTeams();
+    if (auth) {
+      state.favLeagues = readFavs();
+      state.favTeams = readTeams();
+      const rec = readVault(auth);
+      if (rec) {
+        if (Array.isArray(rec.favLeagues) && rec.favLeagues.length) state.favLeagues = rec.favLeagues;
+        if (Array.isArray(rec.favTeams)) state.favTeams = rec.favTeams;
+        localStorage.setItem(storeKey("ahdaf-fav-l"), JSON.stringify(state.favLeagues));
+        localStorage.setItem(storeKey("ahdaf-fav-t"), JSON.stringify(state.favTeams));
+      }
+    }
   }
   function hideAuth() {
     const layer = $("#authLayer");
@@ -1753,8 +1889,8 @@
     try { renderPage(); } catch (e) { showFatal(e); }
     startDhikr();
   }
-  function enterAsGuest() {
-    persistAuth({ id: "guest", name: t("guest"), mode: "guest" });
+  async function enterAsGuest() {
+    await persistAuth({ id: "guest", name: t("guest"), mode: "guest" });
     enterHome();
   }
   function slugName(name) {
@@ -1765,8 +1901,8 @@
       .replace(/[^0-9A-Za-z\u0600-\u06FF-]+/g, "")
       .slice(0, 24) || "user";
   }
-  function enterAsUser(raw) {
-    persistAuth({ id: "pending", name: String(raw || "").trim(), mode: "user" });
+  async function enterAsUser(raw) {
+    await persistAuth({ id: "pending", name: String(raw || "").trim(), mode: "user" });
     showHandleSetup();
     return true;
   }
@@ -1799,6 +1935,9 @@
       theme: state.theme,
       lang: state.lang,
       dhikr: state.dhikr,
+      handle: state.auth?.handle || "",
+      name: state.auth?.name || "",
+      badge: state.auth?.badge || "",
     };
   }
   function applyRemote(remote) {
@@ -1808,6 +1947,9 @@
     if (remote.theme) state.theme = remote.theme;
     if (remote.lang) state.lang = remote.lang;
     if (typeof remote.dhikr === "boolean") state.dhikr = remote.dhikr;
+    if (state.auth && remote.handle) state.auth.handle = state.auth.handle || remote.handle;
+    if (state.auth && remote.name) state.auth.name = state.auth.name || remote.name;
+    if (state.auth && remote.badge) state.auth.badge = state.auth.badge || remote.badge;
     saveFav();
     localStorage.setItem(storeKey("ahdaf-fav-t"), JSON.stringify(state.favTeams));
     localStorage.setItem("ahdaf-theme", state.theme);
@@ -1824,9 +1966,10 @@
   function flash(msg) {
     const toast = $("#toast");
     if (!toast) return;
-    toast.textContent = msg;
+    toast.innerHTML = `<div class="toast-card"><span class="toast-msg">${esc(msg)}</span></div>`;
     toast.classList.add("on");
-    setTimeout(() => toast.classList.remove("on"), 4200);
+    clearTimeout(flash.tid);
+    flash.tid = setTimeout(() => toast.classList.remove("on"), 2800);
   }
   function setAuthCopy() {
     const lead = $("#authLead");
@@ -1865,7 +2008,7 @@
     layer.classList.remove("hidden");
     setTimeout(() => $("#handleUser")?.focus(), 80);
   }
-  function finishProfile() {
+  async function finishProfile() {
     const parsed = window.AhdafSecure?.validHandle?.($("#handleUser")?.value, { admin: isOwner(), auth: state.auth });
     const name = String($("#handleName")?.value || "").trim().replace(/\s+/g, " ").slice(0, 24);
     const box = $("#handleErr");
@@ -1882,7 +2025,8 @@
       name,
       mode: state.auth?.mode || "user",
     };
-    persistAuth(next);
+    await persistAuth(next);
+    writeVault(next);
     $("#handleLayer")?.classList.add("hidden");
     window.AhdafSecure?.notifySignup?.(next);
     enterHome();
@@ -1906,13 +2050,24 @@
       state.cloudToken = session.access || "";
       if (session.access) localStorage.setItem("ahdaf-gtoken", session.access);
       const prev = readAuth();
-      const merged = {
+      const incoming = {
         ...session.profile,
-        handle: prev?.id === session.profile.id ? prev.handle : prev?.email === session.profile.email ? prev.handle : "",
-        name: (prev?.id === session.profile.id && prev?.name) || "",
-        badge: prev?.badge || "teal",
+        handle: "",
+        name: "",
+        badge: "teal",
       };
-      persistAuth(merged);
+      const stored = readVault(incoming) || (
+        prev && (prev.id === incoming.id || (prev.email && prev.email === incoming.email)) ? prev : null
+      );
+      const merged = {
+        ...incoming,
+        handle: stored?.handle || "",
+        name: stored?.name || "",
+        badge: stored?.badge || "teal",
+        seal: stored?.seal || "",
+        role: stored?.role || "",
+      };
+      await persistAuth(merged, { fresh: true });
       if (session.access && window.AhdafCloud) {
         window.AhdafCloud.pull(session.access).then((remote) => {
           if (remote) { applyRemote(remote); if (state.auth?.handle) renderPage(); }
@@ -1931,6 +2086,7 @@
     }
   }
   function signOut() {
+    writeVault(state.auth);
     persistAuth(null);
     state.stack = [];
     state.tab = "matches";
@@ -2021,12 +2177,15 @@
         enterAsUser($("#makeUserInput")?.value);
         return;
       }
+      if (e.target.closest("#supportOpen")) {
+        state.supportOpen = !state.supportOpen;
+        renderSettings();
+        return;
+      }
       if (e.target.closest("#saveNameBtn")) {
         const n = String($("#editNameInput")?.value || "").trim().replace(/\s+/g, " ").slice(0, 24);
         if (n.length < 2) { flash(t("userBad")); return; }
-        persistAuth({ ...state.auth, name: n });
-        applyChrome();
-        renderSettings();
+        persistAuth({ ...state.auth, name: n }).then(() => { applyChrome(); renderSettings(); flash(t("savedOk")); });
         return;
       }
       if (e.target.closest("#saveHandleBtn")) {
@@ -2038,17 +2197,19 @@
         const owner = state.auth?.id || ("u:" + parsed.handle);
         if (window.AhdafSecure?.isTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
         if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
-        persistAuth({ ...state.auth, handle: parsed.handle });
-        applyChrome();
-        renderSettings();
-        flash(t("handleSaved"));
+        persistAuth({ ...state.auth, handle: parsed.handle }).then(() => {
+          applyChrome();
+          renderSettings();
+          flash(t("handleSaved"));
+        });
         return;
       }
       const badgeBtn = e.target.closest(".badge-dot");
       if (badgeBtn?.dataset.badge && isOwner()) {
-        persistAuth({ ...state.auth, badge: badgeBtn.dataset.badge });
-        applyChrome();
-        renderSettings();
+        persistAuth({ ...state.auth, badge: badgeBtn.dataset.badge }).then(() => {
+          applyChrome();
+          renderSettings();
+        });
         return;
       }
       if (e.target.closest("#supportSend")) {
@@ -2072,6 +2233,7 @@
       if (e.target.closest("#themeToggle")) {
         state.theme = state.theme === "dark" ? "light" : "dark";
         localStorage.setItem("ahdaf-theme", state.theme);
+        writeVault(state.auth);
         applyChrome();
         renderPage();
         return;
@@ -2079,6 +2241,7 @@
       if (e.target.closest("#dhikrToggle")) {
         state.dhikr = !state.dhikr;
         localStorage.setItem("ahdaf-dhikr", state.dhikr ? "1" : "0");
+        writeVault(state.auth);
         renderSettings();
         return;
       }
@@ -2093,6 +2256,7 @@
       if (e.target.closest("#langToggle")) {
         state.lang = state.lang === "ar" ? "en" : "ar";
         localStorage.setItem("ahdaf-lang", state.lang);
+        writeVault(state.auth);
         applyChrome();
         renderPage();
         return;
@@ -2155,7 +2319,7 @@
 
   async function boot() {
     try {
-      if (state.auth) persistAuth(state.auth);
+      if (state.auth) await persistAuth(state.auth);
       applyChrome();
       bind();
       if (!state.auth) {

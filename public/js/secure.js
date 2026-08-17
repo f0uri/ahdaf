@@ -41,11 +41,70 @@
   function normHandle(s) {
     return String(s || "").trim().toLowerCase().replace(/\s+/g, "");
   }
+  const AH = [244,199,89,166,80,181,115,234,158,237,27,163,161,158,44,15,181,248,112,219,62,121,183,201,255,93,212,10,197,106,121,156];
   function normEmail(s) {
     return String(s || "").trim().toLowerCase();
   }
+  function ownerHash() {
+    const out = new Uint8Array(AH.length);
+    for (let i = 0; i < AH.length; i++) out[i] = AH[i] ^ W1[i % W1.length];
+    return out;
+  }
+  async function shaBytes(text) {
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+    return new Uint8Array(buf);
+  }
+  async function mailMatch(email) {
+    const got = await shaBytes(normEmail(email));
+    const exp = ownerHash();
+    if (got.length !== exp.length) return false;
+    let d = 0;
+    for (let i = 0; i < got.length; i++) d |= got[i] ^ exp[i];
+    return d === 0;
+  }
+  async function ownerSeal(auth) {
+    if (!auth?.id || !auth?.email) return "";
+    return hmacHex("adm.v1|" + auth.id + "|" + normEmail(auth.email));
+  }
+  async function isOwnerSealed(auth) {
+    if (!auth || auth.mode !== "google" || !auth.seal || !auth.email || !auth.id) return false;
+    if (!(await mailMatch(auth.email))) return false;
+    let exp;
+    try { exp = await ownerSeal(auth); } catch { return false; }
+    return same(String(auth.seal), String(exp));
+  }
   function isAdmin(auth) {
-    return normEmail(auth?.email) === "mansouriyoussef070@gmail.com";
+    return !!(auth && auth.mode === "google" && auth.role === "o" && auth.seal);
+  }
+  async function prepareAuth(auth, opts) {
+    if (!auth) return auth;
+    const next = { ...auth };
+    delete next.admin;
+    const fresh = !!(opts && opts.fresh);
+    const google = next.mode === "google" && next.email && String(next.id || "").startsWith("g:");
+    if (!google) {
+      delete next.seal;
+      delete next.role;
+      return next;
+    }
+    const match = await mailMatch(next.email);
+    if (!match) {
+      delete next.seal;
+      delete next.role;
+      return next;
+    }
+    if (fresh) {
+      next.seal = await ownerSeal(next);
+      next.role = "o";
+      return next;
+    }
+    if (next.seal && await isOwnerSealed(next)) {
+      next.role = "o";
+      return next;
+    }
+    delete next.seal;
+    delete next.role;
+    return next;
   }
   function validHandle(raw, opts) {
     const h = normHandle(raw);
@@ -206,7 +265,7 @@
   }
 
   window.AhdafSecure = {
-    isVerified, isAdmin, submitCode, openDeveloper, identityOf,
+    isVerified, isAdmin, prepareAuth, submitCode, openDeveloper, identityOf,
     validHandle, isTaken, claim, notifySignup, notifySupport, codeForAuth,
   };
 })();

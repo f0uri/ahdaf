@@ -12,8 +12,7 @@
    - External
    - اسم التطبيق: أهداف
    - النطاقات: `openid` · `userinfo.email` · `userinfo.profile` · `drive.appdata`
-   - أضف بريدك كمستخدم تجريبي بحروف صغيرة:
-     `mansouriyoussef070@gmail.com`
+   - أضف بريدك التجريبي بحروف صغيرة في OAuth audience
 4. **Credentials → OAuth client ID**
    - النوع **Android**
      - Package name: `app.ahdaf.scores`

@@ -249,6 +249,32 @@ app.get("/api/frame-check", async (req, res) => {
   }
 });
 
+app.get("/flag", async (req, res) => {
+  try {
+    const c = String(req.query.c || "").toLowerCase();
+    if (!/^[a-z]{2}(?:-[a-z]{2,4})?$/.test(c) && c !== "un" && c !== "eu") {
+      return res.status(400).end();
+    }
+    const url = `https://flagcdn.com/w80/${c}.png`;
+    const key = `flag:${c}`;
+    const hit = cache.get(key);
+    if (hit && Date.now() - hit.t < 12 * 3600_000) {
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("Cache-Control", "public, max-age=86400");
+      return res.end(hit.v);
+    }
+    const r = await fetch(url, { headers: { "User-Agent": UA } });
+    if (!r.ok) return res.status(404).end();
+    const buf = Buffer.from(await r.arrayBuffer());
+    cache.set(key, { t: Date.now(), v: buf });
+    res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "public, max-age=86400");
+    res.end(buf);
+  } catch {
+    res.status(404).end();
+  }
+});
+
 app.get("/img", async (req, res) => {
   try {
     const p = String(req.query.p || "");
