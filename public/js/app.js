@@ -81,6 +81,17 @@
       aboutFeat1: "نتائج ومباشر لكل الدوريات والكؤوس",
       aboutFeat2: "فرقي ودورياتي في الصفحة الرئيسية",
       aboutFeat3: "ترتيب، تشكيلات، إحصائيات وأحداث",
+      guest: "زائر",
+      googleBtn: "المتابعة بحساب Google",
+      guestBtn: "الدخول كزائر",
+      authLead: "نتائج ومواعيد فرقك، بتصميم هادئ",
+      authNote: "الزائر يُحفظ على هذا الجهاز. حساب Google يفصل متابعاتك.",
+      account: "الحساب",
+      signOut: "تسجيل الخروج",
+      googleSoon: "حفظ السحابة عبر Google Play يحتاج إعداد المطوّر. حُفظ حسابك على هذا الجهاز.",
+      ameen: "آمين",
+      remembrance: "ذكر",
+      followHint: "تابع فرقك لتظهر أولاً في الرئيسية.",
       months: ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
       theater: "وضع المشاهدة",
       channels: "أين تشاهد",
@@ -184,6 +195,17 @@
       aboutFeat1: "Live scores for leagues and cups",
       aboutFeat2: "My teams and leagues on the home screen",
       aboutFeat3: "Tables, line-ups, stats and events",
+      guest: "Guest",
+      googleBtn: "Continue with Google",
+      guestBtn: "Continue as guest",
+      authLead: "Your teams, live and fixtures — calmly",
+      authNote: "Guest data stays on this device. A Google account keeps follows separate.",
+      account: "Account",
+      signOut: "Sign out",
+      googleSoon: "Play cloud save needs a developer Google client. Your profile is stored on this device.",
+      ameen: "Ameen",
+      remembrance: "Remembrance",
+      followHint: "Follow your clubs so they appear first on Home.",
       months: ["January","February","March","April","May","June","July","August","September","October","November","December"],
       theater: "Watch mode",
       channels: "Where to watch",
@@ -261,11 +283,15 @@
     "ivory coast": "ci",
   };
 
-  function readFavs() {
-    try {
-      const raw = JSON.parse(localStorage.getItem("ahdaf-fav-l") || "null");
-      if (Array.isArray(raw) && raw.length) return raw;
-    } catch {}
+  function readAuth() {
+    try { return JSON.parse(localStorage.getItem("ahdaf-auth") || "null"); } catch { return null; }
+  }
+  function uid() {
+    try { if (state?.auth?.id) return state.auth.id; } catch {}
+    return readAuth()?.id || "guest";
+  }
+  function storeKey(name) { return name + ":" + uid(); }
+  function defaultLeagues() {
     return [
       "morocco/botola-pro/200",
       "england/premier-league/65",
@@ -273,6 +299,23 @@
       "champions-league/qualification/60",
       "club-friendlies/club-friendlies-2026/310",
     ];
+  }
+  function readFavs() {
+    try {
+      const scoped = JSON.parse(localStorage.getItem(storeKey("ahdaf-fav-l")) || "null");
+      if (Array.isArray(scoped) && scoped.length) return scoped;
+      const raw = JSON.parse(localStorage.getItem("ahdaf-fav-l") || "null");
+      if (Array.isArray(raw) && raw.length) return raw;
+    } catch {}
+    return defaultLeagues();
+  }
+  function readTeams() {
+    try {
+      const scoped = JSON.parse(localStorage.getItem(storeKey("ahdaf-fav-t")) || "null");
+      if (Array.isArray(scoped)) return scoped;
+      const raw = JSON.parse(localStorage.getItem("ahdaf-fav-t") || "[]");
+      return Array.isArray(raw) ? raw : [];
+    } catch { return []; }
   }
 
   const state = {
@@ -290,13 +333,9 @@
     stages: [],
     live: [],
     today: null,
+    auth: readAuth(),
     favLeagues: readFavs(),
-    favTeams: (function () {
-      try {
-        const raw = JSON.parse(localStorage.getItem("ahdaf-fav-t") || "[]");
-        return Array.isArray(raw) ? raw : [];
-      } catch { return []; }
-    })(),
+    favTeams: readTeams(),
     dhikr: localStorage.getItem("ahdaf-dhikr") !== "0",
     cache: {},
     liveTimer: null,
@@ -329,7 +368,7 @@
   }
 
   function saveFav() {
-    localStorage.setItem("ahdaf-fav-l", JSON.stringify(state.favLeagues));
+    localStorage.setItem(storeKey("ahdaf-fav-l"), JSON.stringify(state.favLeagues));
   }
   function isFav(key) {
     return state.favLeagues.includes(key);
@@ -350,7 +389,7 @@
     const sid = String(id);
     if (isFavTeam(sid)) state.favTeams = state.favTeams.filter((x) => String(x.id) !== sid);
     else state.favTeams.unshift({ id: sid, name: name || "", img: img || "" });
-    localStorage.setItem("ahdaf-fav-t", JSON.stringify(state.favTeams));
+    localStorage.setItem(storeKey("ahdaf-fav-t"), JSON.stringify(state.favTeams));
   }
   function followedStages(stages) {
     return (stages || []).filter((s) =>
@@ -1274,6 +1313,13 @@
         </div>
       </div>
       <div class="sheet-card glass">
+        <div class="settings-row account-row">
+          <div>
+            <b>${t("account")}</b>
+            <small>${esc(state.auth?.name || t("guest"))}${state.auth?.email ? " · " + esc(state.auth.email) : ""}</small>
+          </div>
+          ${state.auth ? `<button class="chip" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on" id="authGoogle">${t("googleBtn")}</button>`}
+        </div>
         <div class="settings-row">
           <div><b>${t("dark")}</b></div>
           <button class="toggle ${state.theme === "dark" ? "on" : ""}" id="themeToggle"><i></i></button>
@@ -1302,9 +1348,12 @@
         setTitle(t("matches"));
         renderDates();
         renderChips();
-        $("#view").innerHTML = state.stages.length
+        const hint = !state.favTeams.length
+          ? `<div class="hint-card"><p>${t("followHint")}</p><button class="cta" data-go-tab="leagues">${t("pickLeagues")}</button></div>`
+          : "";
+        $("#view").innerHTML = hint + (state.stages.length
           ? renderStages(state.stages, { followedOnly: true })
-          : empty(t("emptyDay"));
+          : empty(t("emptyDay")));
       } else if (state.tab === "live") {
         setTitle(t("live"));
         renderChips();
@@ -1335,19 +1384,26 @@
     "لا حول ولا قوة إلا بالله",
   ];
 
+  function hideDhikr() {
+    $("#dhikrLayer")?.classList.add("hidden");
+    clearTimeout(hideDhikr.tid);
+  }
+  function showDhikrCard() {
+    if (!state.dhikr) return;
+    const layer = $("#dhikrLayer");
+    const phrase = $("#dhikrPhrase");
+    const kick = $("#dhikrKicker");
+    const btn = $("#dhikrAmeen");
+    if (!layer || !phrase) return;
+    if (kick) kick.textContent = t("remembrance");
+    if (btn) btn.textContent = t("ameen");
+    phrase.textContent = DHIKR[Math.floor(Math.random() * DHIKR.length)];
+    layer.classList.remove("hidden");
+    clearTimeout(hideDhikr.tid);
+    hideDhikr.tid = setTimeout(hideDhikr, 5000);
+  }
   function startDhikr() {
-    const el = $("#toast");
-    if (!el) return;
-    const show = () => {
-      if (!state.dhikr) return;
-      const phrase = DHIKR[Math.floor(Math.random() * DHIKR.length)];
-      el.textContent = phrase;
-      el.classList.add("on");
-      clearTimeout(show.hide);
-      show.hide = setTimeout(() => el.classList.remove("on"), 5000);
-    };
-    setTimeout(show, 6000);
-    setInterval(show, 3 * 60 * 1000);
+    setTimeout(showDhikrCard, 900);
   }
 
   function unlockAudio() {
@@ -1364,7 +1420,7 @@
       tap.pool = [0, 1, 2].map(() => {
         const a = new Audio("/sounds/click.wav");
         a.preload = "auto";
-        a.volume = 0.28;
+        a.volume = 0.22;
         return a;
       });
       tap.pi = 0;
@@ -1404,9 +1460,62 @@
     try { playClickFile(); } catch { synthClick(); }
   }
 
+  function persistAuth(auth) {
+    state.auth = auth;
+    if (auth) localStorage.setItem("ahdaf-auth", JSON.stringify(auth));
+    else localStorage.removeItem("ahdaf-auth");
+    state.favLeagues = readFavs();
+    state.favTeams = readTeams();
+  }
+  function enterAsGuest() {
+    persistAuth({ id: "guest", name: t("guest"), mode: "guest" });
+    $("#authLayer")?.classList.add("hidden");
+    renderPage();
+    startDhikr();
+  }
+  async function enterWithGoogle() {
+    tap();
+    let profile = null;
+    try {
+      const plugin = window.Capacitor?.Plugins?.GoogleAuth;
+      if (plugin?.signIn) {
+        const user = await plugin.signIn();
+        profile = {
+          id: "g:" + (user.id || user.email || "user"),
+          name: user.name || user.displayName || "Google",
+          email: user.email || "",
+          mode: "google",
+        };
+      }
+    } catch {}
+    if (!profile) {
+      profile = { id: "g:device", name: "Google", mode: "google" };
+      const toast = $("#toast");
+      if (toast) {
+        toast.textContent = t("googleSoon");
+        toast.classList.add("on");
+        setTimeout(() => toast.classList.remove("on"), 4200);
+      }
+    }
+    persistAuth(profile);
+    $("#authLayer")?.classList.add("hidden");
+    renderPage();
+    startDhikr();
+  }
+  function signOut() {
+    persistAuth(null);
+    $("#authLayer")?.classList.remove("hidden");
+  }
+
   function bind() {
     document.addEventListener("touchstart", unlockAudio, { once: true, passive: true });
     document.addEventListener("click", unlockAudio, { once: true });
+    $("#authGuest")?.addEventListener("click", () => { tap(); enterAsGuest(); });
+    $("#authGoogle")?.addEventListener("click", enterWithGoogle);
+    $("#dhikrAmeen")?.addEventListener("click", (e) => { e.stopPropagation(); tap(); hideDhikr(); });
+    $("#dhikrLayer")?.addEventListener("click", (e) => {
+      if (e.target.id === "dhikrLayer") hideDhikr();
+    });
     $("#backBtn").addEventListener("click", () => { tap(); pop(); });
     $("#searchBtn").addEventListener("click", () => {
       tap();
@@ -1548,6 +1657,13 @@
     try {
       applyChrome();
       bind();
+      if (!state.auth) {
+        $("#authLead") && ($("#authLead").textContent = t("authLead"));
+        $("#authNote") && ($("#authNote").textContent = t("authNote"));
+        $("#authGoogle") && ($("#authGoogle").textContent = t("googleBtn"));
+        $("#authGuest") && ($("#authGuest").textContent = t("guestBtn"));
+        $("#authLayer")?.classList.remove("hidden");
+      }
       skeleton();
       try {
         const bootData = await api("/api/bootstrap");
@@ -1567,13 +1683,13 @@
         renderDates();
         renderChips();
         applyChrome();
-        startDhikr();
+        if (state.auth) startDhikr();
         return;
       }
       renderDates();
       renderChips();
       renderPage();
-      startDhikr();
+      if (state.auth) startDhikr();
     } catch (err) {
       showFatal(err);
       return;
@@ -1613,4 +1729,3 @@
   }
   boot();
 })();
-

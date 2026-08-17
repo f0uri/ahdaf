@@ -16,12 +16,31 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/app.css?v=14" />
+  <link rel="stylesheet" href="/css/app.css?v=15" />
 </head>
 <body>
   <div class="stage">
     <div class="phone" id="app">
       <div id="toast" class="toast" role="status"></div>
+
+      <div id="authLayer" class="auth-layer hidden">
+        <div class="auth-card">
+          <img class="auth-logo" src="/icons/icon-192.png" alt="" />
+          <h2>أهداف</h2>
+          <p id="authLead">نتائج ومواعيد فرقك، بتصميم هادئ</p>
+          <button type="button" class="auth-google" id="authGoogle">المتابعة بحساب Google</button>
+          <button type="button" class="auth-guest" id="authGuest">الدخول كزائر</button>
+          <small id="authNote">الزائر يُحفظ على هذا الجهاز. حساب Google يفصل متابعاتك.</small>
+        </div>
+      </div>
+
+      <div id="dhikrLayer" class="dhikr-layer hidden">
+        <div class="dhikr-card" role="dialog" aria-modal="true">
+          <div class="dhikr-kicker" id="dhikrKicker">ذكر</div>
+          <div class="dhikr-phrase" id="dhikrPhrase"></div>
+          <button type="button" class="dhikr-ameen" id="dhikrAmeen">آمين</button>
+        </div>
+      </div>
 
       <header class="topbar" id="topbar">
         <button class="icon-btn hidden" id="backBtn" aria-label="رجوع">
@@ -71,6 +90,6 @@
       </nav>
     </div>
   </div>
-  <script src="/js/app.js?v=14"></script>
+  <script src="/js/app.js?v=15"></script>
 </body>
 </html>

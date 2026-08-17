@@ -1,7 +1,7 @@
 :root {
-  --bg: #0b0f12;
-  --grouped: #0b0f12;
-  --card: #151a1e;
+  --bg: #07090c;
+  --grouped: #07090c;
+  --card: rgba(22, 26, 30, 0.72);
   --elevated: #22282e;
   --fill: rgba(140, 155, 165, 0.16);
   --fill-2: rgba(140, 155, 165, 0.1);
@@ -15,11 +15,10 @@
   --blue: #7dd3fc;
   --live: #ff453a;
   --live-soft: rgba(255, 69, 58, 0.16);
-  --gold: #f5c16c;
   --overlay: rgba(0, 0, 0, 0.48);
-  --tab-bg: rgba(16, 20, 24, 0.78);
+  --tab-bg: rgba(18, 20, 24, 0.62);
   --tab-border: rgba(255, 255, 255, 0.08);
-  --league-bg: rgba(21, 26, 30, 0.92);
+  --league-bg: rgba(20, 24, 28, 0.58);
   --league-border: rgba(255, 255, 255, 0.07);
   --glass: rgba(21, 26, 30, 0.78);
   --toast-bg: rgba(12, 22, 20, 0.94);
@@ -31,7 +30,8 @@
   --radius: 12px;
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-b: env(safe-area-inset-bottom, 0px);
-  --tab-h: calc(52px + env(safe-area-inset-bottom, 0px));
+  --tab-h: calc(78px + env(safe-area-inset-bottom, 0px));
+  --gold: #d4b483;
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   --spring: cubic-bezier(0.32, 0.72, 0, 1);
   color-scheme: dark;
@@ -56,7 +56,7 @@ html[data-theme="light"] {
   --live-soft: rgba(255, 59, 48, 0.12);
   --gold: #ff9f0a;
   --overlay: rgba(0, 0, 0, 0.2);
-  --tab-bg: rgba(255, 255, 255, 0.9);
+  --tab-bg: rgba(255, 255, 255, 0.72);
   --tab-border: rgba(60, 60, 67, 0.14);
   --league-bg: #ffffff;
   --league-border: rgba(60, 60, 67, 0.1);
@@ -536,15 +536,19 @@ html[data-theme="dark"] .crest { box-shadow: 0 0 0 0.5px rgba(255,255,255,0.08);
 
 .tabbar {
   position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: var(--tab-h);
-  padding: 4px 4px var(--safe-b);
+  left: 14px;
+  right: 14px;
+  bottom: calc(10px + var(--safe-b));
+  height: 62px;
+  padding: 6px 4px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   background: var(--tab-bg);
-  backdrop-filter: saturate(190%) blur(32px);
-  -webkit-backdrop-filter: saturate(190%) blur(32px);
-  border-top: 0.33px solid var(--tab-border);
+  backdrop-filter: saturate(190%) blur(36px);
+  -webkit-backdrop-filter: saturate(190%) blur(36px);
+  border: 0.5px solid var(--tab-border);
+  border-radius: 28px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
   z-index: 10;
 }
 .tab {
@@ -567,8 +571,6 @@ html[data-theme="dark"] .crest { box-shadow: 0 0 0 0.5px rgba(255,255,255,0.08);
 .tab[data-tab="live"].on { color: var(--live); }
 .tab[data-tab="live"].on svg { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--live) 55%, transparent)); }
 .tab:active { transform: scale(0.92); }
-.tab svg { width: 24px; height: 24px; }
-.tab.on { color: var(--accent); }
 .tab .dot {
   position: absolute;
   top: -1px;
