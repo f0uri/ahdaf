@@ -666,7 +666,7 @@
     if (Array.isArray(rec.favLeagues) && rec.favLeagues.length) state.favLeagues = rec.favLeagues;
     if (Array.isArray(rec.favTeams)) state.favTeams = rec.favTeams;
     if (rec.theme) state.theme = rec.theme;
-    if (rec.lang) state.lang = rec.lang;
+    if (rec.lang) state.lang = normLang(rec.lang);
     if (typeof rec.dhikr === "boolean") state.dhikr = rec.dhikr;
     return {
       ...auth,
@@ -682,7 +682,7 @@
   }
 
   const state = {
-    lang: localStorage.getItem("ahdaf-lang") || "ar",
+    lang: localStorage.getItem("ahdaf-lang") === "en" ? "en" : "ar",
     theme: localStorage.getItem("ahdaf-theme") || "dark",
     tab: "matches",
     date: null,
@@ -702,14 +702,21 @@
     dhikr: localStorage.getItem("ahdaf-dhikr") !== "0",
     cache: {},
     liveTimer: null,
+    inboxTimer: null,
+    inboxCount: 0,
     cloudToken: localStorage.getItem("ahdaf-gtoken") || "",
     owner: false,
     supportOpen: false,
   };
 
+  function normLang(v) {
+    return String(v || "").toLowerCase() === "en" ? "en" : "ar";
+  }
+
   const t = (k) => (I18N[state.lang] && I18N[state.lang][k]) || k;
 
   function applyChrome() {
+    state.lang = normLang(state.lang);
     document.documentElement.lang = state.lang;
     document.documentElement.dir = state.lang === "ar" ? "rtl" : "ltr";
     document.documentElement.dataset.theme = state.theme;
@@ -732,6 +739,74 @@
       dot.classList.toggle("show", n > 0);
     }
     renderUserLine();
+    paintInboxBadge();
+  }
+
+  function paintInboxBadge() {
+    const n = isOwner() ? (Number(state.inboxCount) || 0) : 0;
+    const tab = $("#inboxDot");
+    if (tab) {
+      tab.textContent = n > 99 ? "99" : String(n);
+      tab.classList.toggle("show", n > 0);
+    }
+    const row = $("#view .more-btn[data-open=\"admin-inbox\"]");
+    if (!row) return;
+    let badge = row.querySelector(".inbox-badge");
+    const trail = row.querySelector(".more-trail");
+    if (n > 0) {
+      if (!badge && trail) {
+        badge = document.createElement("i");
+        badge.className = "inbox-badge";
+        trail.insertBefore(badge, trail.firstChild);
+      }
+      if (badge) badge.textContent = n > 99 ? "99+" : String(n);
+      row.classList.add("has-badge");
+    } else {
+      badge?.remove();
+      row.classList.remove("has-badge");
+    }
+  }
+  async function refreshInboxCount() {
+    if (!isOwner() || !window.AhdafSecure?.cloudListRequests) {
+      state.inboxCount = 0;
+      paintInboxBadge();
+      return;
+    }
+    try {
+      const list = await window.AhdafSecure.cloudListRequests();
+      state.inboxCount = Array.isArray(list) ? list.length : 0;
+    } catch {}
+    paintInboxBadge();
+  }
+  function startInboxWatch() {
+    clearInterval(state.inboxTimer);
+    if (!isOwner()) {
+      state.inboxCount = 0;
+      paintInboxBadge();
+      return;
+    }
+    refreshInboxCount();
+    state.inboxTimer = setInterval(() => {
+      if (document.hidden || !isOwner()) return;
+      refreshInboxCount();
+    }, 28000);
+  }
+  function setLang(next) {
+    const lang = normLang(next);
+    state.lang = lang;
+    try { localStorage.setItem("ahdaf-lang", lang); } catch {}
+    writeVault(state.auth);
+    cloudPushSoon();
+    applyChrome();
+    try { setAuthCopy(); } catch {}
+    const hl = $("#handleLayer");
+    if (hl && !hl.classList.contains("hidden")) {
+      if ($("#handleLead")) $("#handleLead").textContent = isOwner() ? t("handleLeadAdmin") : t("handleLead");
+      if ($("#handleLab")) $("#handleLab").textContent = t("handleLab");
+      if ($("#nameLab")) $("#nameLab").textContent = t("nameLab");
+      if ($("#handleSave")) $("#handleSave").textContent = t("handleSave");
+    }
+    renderPage();
   }
 
   function pickPicture(authPic, recPic) {
@@ -830,7 +905,7 @@
     if (src) {
       return `<span class="acc-ava ${cls || ""} has-img"><img src="${esc(src)}" alt=""></span>`;
     }
-    return `<span class="acc-ava ${cls || ""} empty"></span>`;
+    return `<span class="acc-ava ${cls || ""} empty" aria-hidden="true"><svg class="ava-ph" viewBox="0 0 24 24"><circle cx="12" cy="8.6" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.8 18.4c.9-3 3.1-4.6 6.2-4.6s5.3 1.6 6.2 4.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>`;
   }
   function compressPhoto(file) {
     return new Promise((resolve, reject) => {
@@ -1899,10 +1974,11 @@
     </section>`;
   }
 
-  function moreRow(id, title, sub) {
-    return `<button type="button" class="more-btn" data-open="${esc(id)}">
+  function moreRow(id, title, sub, badge) {
+    const n = Number(badge) || 0;
+    return `<button type="button" class="more-btn${n > 0 ? " has-badge" : ""}" data-open="${esc(id)}">
       <div><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ""}</div>
-      <span class="go">‹</span>
+      <span class="more-trail">${n > 0 ? `<i class="inbox-badge">${n > 99 ? "99+" : n}</i>` : ""}<span class="go">‹</span></span>
     </button>`;
   }
   function renderSettings() {
@@ -1921,7 +1997,7 @@
       </section>
       ${isOwner() ? `<div class="sheet-card glass">
         <div class="club-kicker">${t("adminTools")}</div>
-        ${moreRow("admin-inbox", t("inbox"), t("inboxLead"))}
+        ${moreRow("admin-inbox", t("inbox"), t("inboxLead"), state.inboxCount)}
         ${moreRow("admin-grant", t("grantTitle"), t("grantLead"))}
         ${moreRow("admin-badge", t("badgeColor"), "")}
         ${moreRow("admin-handle", t("editHandle"), t("adminHandleHint"))}
@@ -1940,7 +2016,10 @@
         </div>
         <div class="settings-row">
           <div><b>${state.lang === "ar" ? "اللغة" : "Language"}</b></div>
-          <button class="chip on" id="langToggle">${t("lang")}</button>
+          <div class="lang-switch" role="group" aria-label="${state.lang === "ar" ? "اللغة" : "Language"}">
+            <button type="button" class="lang-opt${state.lang === "ar" ? " on" : ""}" data-lang="ar">العربية</button>
+            <button type="button" class="lang-opt${state.lang === "en" ? " on" : ""}" data-lang="en">English</button>
+          </div>
         </div>
         <div class="settings-row">
           <div>
@@ -1951,6 +2030,7 @@
         </div>
       </div>
     `;
+    if (isOwner()) refreshInboxCount();
   }
   function renderAdminGrant() {
     setTitle(t("grantTitle"), t("adminTools"));
@@ -2021,6 +2101,8 @@
     (window.AhdafSecure?.cloudListRequests?.() || Promise.resolve([])).then((list) => {
       const box = $("#inboxBox");
       if (!box) return;
+      state.inboxCount = Array.isArray(list) ? list.length : 0;
+      paintInboxBadge();
       if (!list.length) { box.innerHTML = `<p class="verify-lead">${t("inboxEmpty")}</p>`; return; }
       box.innerHTML = list.map((u) => `<article class="grant-card">
         <div class="grant-top">
@@ -2259,6 +2341,7 @@
     try { applyChrome(); } catch {}
     try { renderPage(); } catch (e) { showFatal(e); }
     startDhikr();
+    if (isOwner()) startInboxWatch();
   }
   async function enterAsGuest() {
     await persistAuth({ id: "guest", name: t("guest"), mode: "guest" });
@@ -2319,7 +2402,7 @@
     if (Array.isArray(remote.favLeagues) && remote.favLeagues.length) state.favLeagues = remote.favLeagues;
     if (Array.isArray(remote.favTeams)) state.favTeams = remote.favTeams;
     if (remote.theme) state.theme = remote.theme;
-    if (remote.lang) state.lang = remote.lang;
+    if (remote.lang) state.lang = normLang(remote.lang);
     if (typeof remote.dhikr === "boolean") state.dhikr = remote.dhikr;
     if (state.auth && remote.handle) state.auth.handle = state.auth.handle || remote.handle;
     if (state.auth && remote.name) state.auth.name = state.auth.name || remote.name;
@@ -2488,7 +2571,7 @@
         state.favTeams = cloud.favTeams;
       }
       if (cloud?.theme && !stored?.theme) state.theme = cloud.theme;
-      if (cloud?.lang && !stored?.lang) state.lang = cloud.lang;
+      if (cloud?.lang && !stored?.lang) state.lang = normLang(cloud.lang);
       if (typeof cloud?.dhikr === "boolean" && typeof stored?.dhikr !== "boolean") state.dhikr = cloud.dhikr;
       await persistAuth(merged, { fresh: true });
       if (merged.handle) {
@@ -2523,6 +2606,9 @@
     persistAuth(null);
     state.stack = [];
     state.tab = "matches";
+    state.inboxCount = 0;
+    clearInterval(state.inboxTimer);
+    paintInboxBadge();
     setAuthCopy();
     $("#authLayer")?.classList.remove("hidden");
     applyChrome();
@@ -2796,6 +2882,9 @@
           }
           if (note) { note.textContent = r?.ok ? (r.pending ? t("reqPending") : t("reqSent")) : t("error"); note.classList.remove("hidden"); }
           if (btn) btn.disabled = false;
+          if (r?.ok && !r.pending && !r.already) {
+            window.AhdafSecure?.notifySupport?.(state.auth, "طلب توثيق جديد: @" + (state.auth?.handle || "") + (state.auth?.name ? " / " + state.auth.name : "") + (state.auth?.email ? " / " + state.auth.email : ""));
+          }
           if (r?.ok) flash(r.pending ? t("reqPending") : t("reqSent"));
           else flash(t("error"));
         }).catch(() => { if (btn) btn.disabled = false; flash(t("error")); });
@@ -2870,12 +2959,13 @@
         else renderPage();
         return;
       }
+      const langBtn = e.target.closest("[data-lang]");
+      if (langBtn?.dataset.lang) {
+        setLang(langBtn.dataset.lang);
+        return;
+      }
       if (e.target.closest("#langToggle")) {
-        state.lang = state.lang === "ar" ? "en" : "ar";
-        localStorage.setItem("ahdaf-lang", state.lang);
-        writeVault(state.auth);
-        applyChrome();
-        renderPage();
+        setLang(state.lang === "ar" ? "en" : "ar");
         return;
       }
       const star = e.target.closest(".star, .star-lg");
@@ -2972,6 +3062,7 @@
       renderChips();
       renderPage();
       if (state.auth) startDhikr();
+      if (isOwner()) startInboxWatch();
     } catch (err) {
       showFatal(err);
       return;
