@@ -1761,8 +1761,8 @@
     $("#handleLab") && ($("#handleLab").textContent = t("handleLab"));
     $("#nameLab") && ($("#nameLab").textContent = t("nameLab"));
     $("#handleSave") && ($("#handleSave").textContent = t("handleSave"));
-    if ($("#handleUser") && !state.auth?.handle) $("#handleUser").value = "";
-    if ($("#handleName")) $("#handleName").value = prefill || state.auth?.name || "";
+    if ($("#handleUser")) $("#handleUser").value = "";
+    if ($("#handleName")) $("#handleName").value = "";
     const err = $("#handleErr");
     if (err) { err.textContent = ""; err.classList.add("hidden"); }
     layer.classList.remove("hidden");
