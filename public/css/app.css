@@ -25,6 +25,7 @@
   --toast-bg: rgba(12, 22, 20, 0.94);
   --toast-fg: #f3fff8;
   --ink-on-accent: #06241c;
+  --tab-idle: rgba(210, 222, 220, 0.52);
   --shadow: none;
   --card-shadow: none;
   --radius: 12px;
@@ -63,8 +64,9 @@ html[data-theme="light"] {
   --toast-bg: #10241e;
   --toast-fg: #f3fff8;
   --ink-on-accent: #ffffff;
+  --tab-idle: rgba(28, 28, 30, 0.68);
   --shadow: 0 0 0 0 transparent;
-  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.05);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 28px rgba(0, 0, 0, 0.06);
   color-scheme: light;
 }
 
@@ -288,12 +290,12 @@ body {
 
 .league {
   background: var(--league-bg);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border-radius: 16px;
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border-radius: 18px;
   margin: 0 10px 10px;
   overflow: hidden;
-  box-shadow: var(--card-shadow), 0 0 0 0.5px var(--league-border);
+  box-shadow: var(--card-shadow), 0 0 0 0.5px var(--league-border), inset 0 1px 0 rgba(255,255,255,0.06);
   color: var(--label);
 }
 .league-h {
@@ -549,14 +551,14 @@ html[data-theme="dark"] .crest { box-shadow: 0 0 0 0.5px rgba(255,255,255,0.08);
   position: relative;
   border: 0;
   background: none;
-  color: var(--tertiary);
+  color: var(--tab-idle);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
   font: inherit;
   font-size: 10px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
 }
 .tab svg { width: 24px; height: 24px; }
@@ -1151,17 +1153,39 @@ a.list-row { text-decoration: none; color: inherit; }
 .verified {
   display: grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  filter: drop-shadow(0 0 0 1.5px var(--card));
+  line-height: 0;
 }
-.verified svg { display: block; }
+.verified svg { display: block; overflow: visible; }
 .credit > span { color: var(--secondary); font-size: 12px; }
+.about { padding: 4px 2px 8px; }
+.about b {
+  display: block;
+  font-size: 15px;
+  margin: 10px 0 6px;
+}
+.about p {
+  margin: 0 0 10px;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.55;
+  font-weight: 400;
+}
+.about ul {
+  margin: 0;
+  padding: 0 18px 0 0;
+  color: var(--label);
+  font-size: 14px;
+  line-height: 1.55;
+}
+html[dir="ltr"] .about ul { padding: 0 0 0 18px; }
+.about-card { margin-bottom: 10px; }
 .sheet-card.glass {
   background: var(--glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-radius: 18px;
   margin: 8px 10px;
   color: var(--label);

@@ -168,6 +168,17 @@
       myLeagues: "My leagues",
       discover: "Discover",
       friendlies: "Friendlies",
+      myTeams: "My teams",
+      liveNow: "Live now",
+      dhikr: "Remembrance",
+      dhikrHint: "Appears for five seconds while you browse",
+      followTeam: "Follow",
+      followingTeam: "Following",
+      about: "About Ahdaf",
+      aboutBody: "Ahdaf is an Arabic football scores app: live, fixtures, tables, line-ups and events. Follow only your teams and leagues, plus friendlies, on Morocco time.",
+      aboutFeat1: "Live scores for leagues and cups",
+      aboutFeat2: "My teams and leagues on the home screen",
+      aboutFeat3: "Tables, line-ups, stats and events",
       months: ["January","February","March","April","May","June","July","August","September","October","November","December"],
       theater: "Watch mode",
       channels: "Where to watch",
@@ -348,6 +359,23 @@
   }
   function leagueKey(s) {
     return `${s.Ccd || s.ccd || ""}/${s.Scd || s.scd || ""}/${s.CompId || s.cid || s.Sid || ""}`;
+  }
+
+  function verifiedBadge(size = 18) {
+    const petals = [];
+    for (let i = 0; i < 12; i++) {
+      const a = ((i * 30 - 90) * Math.PI) / 180;
+      petals.push(`<circle cx="${(12 + Math.cos(a) * 7.38).toFixed(2)}" cy="${(12 + Math.sin(a) * 7.38).toFixed(2)}" r="2.2"/>`);
+    }
+    return `<span class="verified" title="Verified" aria-label="موثّق">
+      <svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">
+        <g fill="#1ee0b0">
+          <circle cx="12" cy="12" r="7.5"/>
+          ${petals.join("")}
+        </g>
+        <path d="M8.1 12.15l2.55 2.6 5.25-5.4" fill="none" stroke="#fff" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>`;
   }
 
   function esc(s) {
@@ -1218,21 +1246,27 @@
   }
 
   function renderSettings() {
-    setTitle(t("settings"), t("app"));
+    setTitle(t("more"), t("app"));
     $("#view").innerHTML = `
-      <div class="sheet-card glass">
+      <div class="sheet-card glass about-card">
         <div class="credit">
           <div class="credit-name">
             <b>Youssef Mansouri</b>
-            <span class="verified" title="Verified" aria-label="موثّق">
-              <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-                <circle cx="12" cy="12" r="11" fill="#1ee0b0"/>
-                <path d="M7.1 12.2l3.2 3.25 6.6-6.75" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
+            ${verifiedBadge(20)}
           </div>
           <span>${state.lang === "ar" ? "الحقوق محفوظة" : "All rights reserved"}</span>
         </div>
+        <div class="about">
+          <b>${t("about")}</b>
+          <p>${t("aboutBody")}</p>
+          <ul>
+            <li>${t("aboutFeat1")}</li>
+            <li>${t("aboutFeat2")}</li>
+            <li>${t("aboutFeat3")}</li>
+          </ul>
+        </div>
+      </div>
+      <div class="sheet-card glass">
         <div class="settings-row">
           <div><b>${t("dark")}</b></div>
           <button class="toggle ${state.theme === "dark" ? "on" : ""}" id="themeToggle"><i></i></button>
@@ -1298,13 +1332,9 @@
     const el = $("#toast");
     if (!el) return;
     const show = () => {
+      if (!state.dhikr) return;
       const phrase = DHIKR[Math.floor(Math.random() * DHIKR.length)];
-      el.innerHTML = `<div class="toast-inner">
-        <span class="toast-ico" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2.2c.35 4.2 3.5 7.35 7.7 7.7-4.2.35-7.35 3.5-7.7 7.7-.35-4.2-3.5-7.35-7.7-7.7 4.2-.35 7.35-3.5 7.7-7.7z"/></svg>
-        </span>
-        <span class="toast-txt">${phrase}</span>
-      </div>`;
+      el.textContent = phrase;
       el.classList.add("on");
       clearTimeout(show.hide);
       show.hide = setTimeout(() => el.classList.remove("on"), 5000);
@@ -1327,7 +1357,7 @@
       tap.pool = [0, 1, 2].map(() => {
         const a = new Audio("/sounds/click.wav");
         a.preload = "auto";
-        a.volume = 0.55;
+        a.volume = 0.28;
         return a;
       });
       tap.pi = 0;
@@ -1362,7 +1392,7 @@
   }
 
   function tap() {
-    try { navigator.vibrate?.(12); } catch {}
+    try { navigator.vibrate?.(8); } catch {}
     unlockAudio();
     try { playClickFile(); } catch { synthClick(); }
   }
@@ -1382,7 +1412,7 @@
         renderPage();
       }
     });
-    $("#moreBtn").addEventListener("click", () => { tap(); openSettings(); });
+    $("#moreBtn")?.addEventListener("click", () => { tap(); openSettings(); });
     $("#searchInput").addEventListener("input", (e) => {
       state.q = e.target.value.trim();
       renderPage();
@@ -1576,3 +1606,4 @@
   }
   boot();
 })();
+
