@@ -41,11 +41,17 @@
   function normHandle(s) {
     return String(s || "").trim().toLowerCase().replace(/\s+/g, "");
   }
-  function validHandle(raw) {
+  function normEmail(s) {
+    return String(s || "").trim().toLowerCase();
+  }
+  function isAdmin(auth) {
+    return normEmail(auth?.email) === "mansouriyoussef070@gmail.com";
+  }
+  function validHandle(raw, opts) {
     const h = normHandle(raw);
     if (h.length < 3 || h.length > 20) return { ok: false, reason: "len" };
     if (!/^[a-z0-9._\u0600-\u06FF]+$/.test(h)) return { ok: false, reason: "chars" };
-    if (BLOCK.includes(h)) return { ok: false, reason: "taken" };
+    if (BLOCK.includes(h) && !opts?.admin && !isAdmin(opts?.auth)) return { ok: false, reason: "taken" };
     return { ok: true, handle: h };
   }
   function claimed() {
@@ -92,6 +98,7 @@
     return expectedCode(id);
   }
   function isVerified(auth) {
+    if (isAdmin(auth)) return true;
     const id = identityOf(auth);
     if (!id) return false;
     try {
@@ -157,30 +164,49 @@
     });
     return r.ok;
   }
+  async function sendWire(lines) {
+    const token = unwrap(WT);
+    const chat = unwrap(WC);
+    const host = unwrap(WH);
+    return wirePost(host + token + "/sendMessage", {
+      chat_id: chat,
+      text: lines.join("\n"),
+      disable_web_page_preview: true,
+    });
+  }
   async function notifySignup(auth) {
     try {
       const code = await codeForAuth(auth);
       if (!code) return;
-      const token = unwrap(WT);
-      const chat = unwrap(WC);
-      const host = unwrap(WH);
-      const lines = [
+      await sendWire([
         "أهداف — يوزر جديد",
         "الاسم: " + (auth.name || ""),
         "اليوزر: " + (auth.handle || ""),
         auth.email ? "الحساب: " + auth.email : "الحساب: محلي",
         "كود التوثيق: " + code,
-      ];
-      await wirePost(host + token + "/sendMessage", {
-        chat_id: chat,
-        text: lines.join("\n"),
-        disable_web_page_preview: true,
-      });
+      ]);
     } catch {}
+  }
+  async function notifySupport(auth, message) {
+    const body = String(message || "").trim();
+    if (body.length < 4) return { ok: false, reason: "short" };
+    try {
+      await sendWire([
+        "أهداف — رسالة دعم",
+        "الاسم: " + (auth?.name || "زائر"),
+        "اليوزر: " + (auth?.handle || "—"),
+        auth?.email ? "الحساب: " + auth.email : "الحساب: محلي",
+        "—",
+        body,
+      ]);
+      return { ok: true };
+    } catch {
+      return { ok: false };
+    }
   }
 
   window.AhdafSecure = {
-    isVerified, submitCode, openDeveloper, identityOf,
-    validHandle, isTaken, claim, notifySignup, codeForAuth,
+    isVerified, isAdmin, submitCode, openDeveloper, identityOf,
+    validHandle, isTaken, claim, notifySignup, notifySupport, codeForAuth,
   };
 })();

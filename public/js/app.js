@@ -108,13 +108,30 @@
       makeUser: "تحويل إلى يوزر",
       handleTitle: "أكمل حسابك",
       handleLead: "اليوزر ثابت ولا يمكن تغييره لاحقاً",
+      handleLeadAdmin: "حساب المطوّر — يمكنك تغيير اليوزر لاحقاً متى شئت",
       handleLab: "اليوزر",
       nameLab: "الاسم",
       handleSave: "متابعة",
       handleBad: "يوزر من 3 إلى 20 حرفاً: حروف وأرقام ونقطة وشرطة سفلية",
       handleTaken: "هذا اليوزر مستخدم",
       handleNeed: "أدخل اليوزر والاسم",
+      editHandle: "تغيير اليوزر",
+      adminHandleHint: "متاح لحساب المطوّر فقط — غيّره متى شئت",
+      saveHandle: "حفظ اليوزر",
+      handleSaved: "تم تغيير اليوزر",
+      badgeColor: "لون التوثيق",
+      badgeColorHint: "الأصفر، الأحمر، الأخضر، الأزرق وجميع الألوان الأساسية",
+      adminOn: "حساب المطوّر موثّق تلقائياً",
+      adminMark: "أدمن",
       verifyBody: "راسل المطوّر بيوزرك ليصلك الكود الخاص بحسابك فقط.",
+      editName: "تعديل الاسم",
+      saveName: "حفظ",
+      support: "الدعم",
+      supportLead: "اكتب مشكلتك أو استفسارك. تصل للمطوّر مع معلومات حسابك.",
+      supportPh: "صف المشكلة هنا…",
+      supportSend: "إرسال",
+      supportOk: "وصلت رسالتك",
+      supportShort: "اكتب تفاصيل أكثر قليلاً",
       ameen: "آمين",
       remembrance: "ذكر",
       followHint: "تابع فرقك لتظهر أولاً في الرئيسية.",
@@ -247,13 +264,30 @@
       makeUser: "Create a username",
       handleTitle: "Finish your profile",
       handleLead: "Your username is permanent and unique",
+      handleLeadAdmin: "Owner account — you can change your username anytime",
       handleLab: "Username",
       nameLab: "Name",
       handleSave: "Continue",
       handleBad: "3–20 characters: letters, numbers, dot or underscore",
       handleTaken: "That username is taken",
       handleNeed: "Enter a username and name",
+      editHandle: "Change username",
+      adminHandleHint: "Owner only — change it whenever you want",
+      saveHandle: "Save username",
+      handleSaved: "Username updated",
+      badgeColor: "Badge color",
+      badgeColorHint: "Yellow, red, green, blue and the core colors",
+      adminOn: "Owner account is verified automatically",
+      adminMark: "Admin",
       verifyNeedUser: "Create a username first so the code binds to you.",
+      editName: "Edit name",
+      saveName: "Save",
+      support: "Support",
+      supportLead: "Write your issue. It reaches the developer with your account info.",
+      supportPh: "Describe the problem…",
+      supportSend: "Send",
+      supportOk: "Message sent",
+      supportShort: "Please write a bit more",
       verifyBody: "Message the developer your username to receive your unique code.",
       ameen: "Ameen",
       remembrance: "Remembrance",
@@ -469,12 +503,33 @@
   }
 
   function renderUserLine() {
+    const line = $("#userLine");
     const nameEl = $("#userLineName");
     const badgeEl = $("#userLineBadge");
-    if (nameEl) nameEl.textContent = state.auth?.name || t("guest");
-    if (badgeEl) badgeEl.innerHTML = window.AhdafSecure?.isVerified?.(state.auth) ? verifiedBadge(16) : "";
-    const hEl = $("#userLineHandle");
-    if (hEl) hEl.textContent = state.auth?.handle ? "@" + state.auth.handle : "";
+    const name = state.auth?.name;
+    const show = !!(name && state.auth?.mode !== "guest");
+    if (line) line.classList.toggle("hidden", !show);
+    if (nameEl) nameEl.textContent = show ? name : "";
+    if (badgeEl) badgeEl.innerHTML = show && window.AhdafSecure?.isVerified?.(state.auth) ? verifiedBadge(16) : "";
+  }
+
+  const BADGE_COLORS = [
+    { id: "teal", hex: "#1ee0b0" },
+    { id: "green", hex: "#30d158" },
+    { id: "yellow", hex: "#ffd60a" },
+    { id: "orange", hex: "#ff9f0a" },
+    { id: "red", hex: "#ff453a" },
+    { id: "blue", hex: "#0a84ff" },
+    { id: "purple", hex: "#bf5af2" },
+    { id: "pink", hex: "#ff375f" },
+    { id: "white", hex: "#f2f2f7" },
+  ];
+  function badgeHex(auth) {
+    const id = String(auth?.badge || "teal");
+    return (BADGE_COLORS.find((c) => c.id === id) || BADGE_COLORS[0]).hex;
+  }
+  function isOwner() {
+    return !!window.AhdafSecure?.isAdmin?.(state.auth);
   }
 
   function saveFav() {
@@ -517,7 +572,8 @@
     return `${s.Ccd || s.ccd || ""}/${s.Scd || s.scd || ""}/${s.CompId || s.cid || s.Sid || ""}`;
   }
 
-  function verifiedBadge(size = 18) {
+  function verifiedBadge(size = 18, color) {
+    const fill = color || (isOwner() ? badgeHex(state.auth) : "#1ee0b0");
     const petals = [];
     for (let i = 0; i < 12; i++) {
       const a = ((i * 30 - 90) * Math.PI) / 180;
@@ -525,7 +581,7 @@
     }
     return `<span class="verified" title="Verified" aria-label="موثّق">
       <svg viewBox="0 0 24 24" width="${size}" height="${size}" aria-hidden="true">
-        <g fill="#1ee0b0">
+        <g fill="${fill}">
           <circle cx="12" cy="12" r="7.5"/>
           ${petals.join("")}
         </g>
@@ -953,9 +1009,7 @@
             </button>
             <button class="meta league-open" data-ccd="${esc(s.Ccd)}" data-scd="${esc(s.Scd)}" data-cid="${esc(s.CompId || s.Sid)}" data-name="${esc(name)}">
               <b>${esc(name)}</b>
-              <span>${esc(s.Cnm || "")}${s.Snm && s.Snm !== s.CompN ? " · " + esc(s.Snm) : ""}</span>
             </button>
-            <span class="chev">‹</span>
             <button class="star ${isFav(key) ? "on" : ""}" data-key="${esc(key)}" aria-label="fav">★</button>
           </div>
           ${s.Events.map((ev) => renderMatch(ev, s, { showDay: false })).join("")}
@@ -1068,7 +1122,6 @@
         (c) => `<button class="list-row country-open" data-ccd="${esc(c.ccd)}" data-name="${esc(state.lang === "ar" ? c.nameAr : c.name)}">
           ${flag(c.ccd, c.name)}
           <span style="flex:1;text-align:start;font-weight:550">${esc(state.lang === "ar" ? c.nameAr : c.name)}</span>
-          <span class="go">‹</span>
         </button>`
       )
       .join("");
@@ -1094,7 +1147,7 @@
       html += missing
         .map(
           (f) => `<button class="list-row league-open" data-ccd="${esc(f.ccd)}" data-scd="${esc(f.scd)}" data-cid="${esc(f.CompId)}" data-name="${esc(state.lang === "ar" ? f.nameAr : f.name)}">
-            ${flag(f.ccd)}<span style="flex:1;text-align:start;font-weight:550">${esc(state.lang === "ar" ? f.nameAr : f.name)}</span><span class="go">‹</span>
+            ${flag(f.ccd)}<span style="flex:1;text-align:start;font-weight:550">${esc(state.lang === "ar" ? f.nameAr : f.name)}</span>
           </button>`
         )
         .join("");
@@ -1411,7 +1464,6 @@
         .map(
           (c) => `<button class="list-row league-open" data-ccd="${esc(c.ccd)}" data-scd="${esc(c.scd)}" data-cid="${esc(c.CompId)}" data-name="${esc(c.name || c.stage)}">
             <span style="flex:1;text-align:start;font-weight:550">${esc(c.stage || c.name)}</span>
-            <span class="go">‹</span>
           </button>`
         )
         .join("");
@@ -1440,7 +1492,7 @@
         <div class="credit">
           <div class="credit-name">
             <b>Youssef Mansouri</b>
-            ${verifiedBadge(20)}
+            ${verifiedBadge(20, "#1ee0b0")}
           </div>
           <span>${state.lang === "ar" ? "الحقوق محفوظة" : "All rights reserved"}</span>
         </div>
@@ -1458,10 +1510,25 @@
         <div class="settings-row account-row">
           <div>
             <b>${t("account")}</b>
-            <small>${esc(state.auth?.name || t("guest"))}${state.auth?.handle ? " · @" + esc(state.auth.handle) : ""}${state.auth?.email ? " · " + esc(state.auth.email) : ""}</small>
+            <small>${esc(state.auth?.name || t("guest"))}${state.auth?.handle ? " · @" + esc(state.auth.handle) : ""}${state.auth?.email ? " · " + esc(state.auth.email) : ""}${isOwner() ? " · " + t("adminMark") : ""}</small>
           </div>
           ${state.auth ? `<button class="chip" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on auth-google mini" id="authGoogle"><span class="g-logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.97 6.97 0 0 1 5.48 12c0-.72.12-1.43.36-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span><span>${t("googleBtn")}</span></button>`}
         </div>
+        ${state.auth && state.auth.mode !== "guest" ? `<div class="settings-row">
+          <div><b>${t("editName")}</b><small>${state.auth.handle ? "@" + esc(state.auth.handle) : ""}</small></div>
+        </div>
+        <div class="verify-field" style="padding:0 2px 12px">
+          <input id="editNameInput" type="text" maxlength="24" value="${esc(state.auth.name || "")}" />
+          <button class="verify-go" id="saveNameBtn" style="margin-top:8px">${t("saveName")}</button>
+        </div>` : ""}
+        ${isOwner() ? `<div class="settings-row">
+          <div><b>${t("editHandle")}</b><small>${t("adminHandleHint")}</small></div>
+        </div>
+        <div class="verify-field" style="padding:0 2px 12px">
+          <input id="editHandleInput" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(state.auth.handle || "")}" />
+          <p class="field-err hidden" id="editHandleErr"></p>
+          <button class="verify-go" id="saveHandleBtn" style="margin-top:8px">${t("saveHandle")}</button>
+        </div>` : ""}
         ${!state.auth || state.auth.mode === "guest" ? `<div class="settings-row">
           <div>
             <b>${t("makeUser")}</b>
@@ -1491,7 +1558,15 @@
       <div class="sheet-card glass verify-card">
         <div class="about">
           <b>${t("verifyTitle")}</b>
-          ${window.AhdafSecure?.isVerified?.(state.auth)
+          ${isOwner()
+            ? `<div class="verify-on" style="color:${badgeHex(state.auth)}">${verifiedBadge(18)}<span>${t("adminOn")}</span></div>
+          <div class="settings-row" style="border-top:0;padding-top:16px">
+            <div><b>${t("badgeColor")}</b><small>${t("badgeColorHint")}</small></div>
+          </div>
+          <div class="badge-picks">
+            ${BADGE_COLORS.map((c) => `<button type="button" class="badge-dot ${(state.auth.badge || "teal") === c.id ? "on" : ""}" data-badge="${c.id}" style="--c:${c.hex}" aria-label="${c.id}"></button>`).join("")}
+          </div>`
+            : window.AhdafSecure?.isVerified?.(state.auth)
             ? `<div class="verify-on">${verifiedBadge(18)}<span>${t("verifiedOn")}</span></div>`
             : `<p class="verify-lead">${t("verifyBody")}</p>
           <div class="verify-field">
@@ -1503,6 +1578,17 @@
             <button type="button" class="verify-dm" id="verifyDm">${t("verifyDm")}</button>
             <button type="button" class="verify-go" id="verifyGo">${t("verifyGo")}</button>
           </div>`}
+        </div>
+      </div>
+      <div class="sheet-card glass verify-card">
+        <div class="about">
+          <b>${t("support")}</b>
+          <p class="verify-lead">${t("supportLead")}</p>
+          <textarea class="support-box" id="supportBox" maxlength="800" placeholder="${esc(t("supportPh"))}"></textarea>
+          <div class="verify-actions">
+            <span></span>
+            <button type="button" class="verify-go" id="supportSend">${t("supportSend")}</button>
+          </div>
         </div>
       </div>
     `;
@@ -1629,7 +1715,18 @@
     try { playClickFile(); } catch { synthClick(); }
   }
 
+  function promoteAdmin(auth) {
+    if (!auth || !window.AhdafSecure?.isAdmin?.(auth)) return auth;
+    const next = { ...auth, admin: true, badge: auth.badge || "teal" };
+    try {
+      localStorage.setItem("ahdaf-vok", "1");
+      const id = window.AhdafSecure.identityOf?.(next);
+      if (id) localStorage.setItem("ahdaf-vbind", id);
+    } catch {}
+    return next;
+  }
   function persistAuth(auth) {
+    if (auth) auth = promoteAdmin(auth);
     state.auth = auth;
     if (auth) localStorage.setItem("ahdaf-auth", JSON.stringify(auth));
     else {
@@ -1670,7 +1767,7 @@
   }
   function enterAsUser(raw) {
     persistAuth({ id: "pending", name: String(raw || "").trim(), mode: "user" });
-    showHandleSetup(String(raw || "").trim());
+    showHandleSetup();
     return true;
   }
   function setVerifyErr(msg) {
@@ -1757,7 +1854,7 @@
     hideAuth();
     const layer = $("#handleLayer");
     if (!layer) { enterHome(); return; }
-    $("#handleLead") && ($("#handleLead").textContent = t("handleLead"));
+    $("#handleLead") && ($("#handleLead").textContent = isOwner() ? t("handleLeadAdmin") : t("handleLead"));
     $("#handleLab") && ($("#handleLab").textContent = t("handleLab"));
     $("#nameLab") && ($("#nameLab").textContent = t("nameLab"));
     $("#handleSave") && ($("#handleSave").textContent = t("handleSave"));
@@ -1769,7 +1866,7 @@
     setTimeout(() => $("#handleUser")?.focus(), 80);
   }
   function finishProfile() {
-    const parsed = window.AhdafSecure?.validHandle?.($("#handleUser")?.value);
+    const parsed = window.AhdafSecure?.validHandle?.($("#handleUser")?.value, { admin: isOwner(), auth: state.auth });
     const name = String($("#handleName")?.value || "").trim().replace(/\s+/g, " ").slice(0, 24);
     const box = $("#handleErr");
     const show = (msg) => { if (box) { box.textContent = msg; box.classList.remove("hidden"); } };
@@ -1812,7 +1909,8 @@
       const merged = {
         ...session.profile,
         handle: prev?.id === session.profile.id ? prev.handle : prev?.email === session.profile.email ? prev.handle : "",
-        name: (prev?.id === session.profile.id && prev?.name) || session.profile.name,
+        name: (prev?.id === session.profile.id && prev?.name) || "",
+        badge: prev?.badge || "teal",
       };
       persistAuth(merged);
       if (session.access && window.AhdafCloud) {
@@ -1822,7 +1920,7 @@
         }).catch(() => {});
       }
       if (merged.handle) enterHome();
-      else showHandleSetup(merged.name);
+      else showHandleSetup();
     } catch (e) {
       const code = String(e?.code || e?.message || e || "");
       if (code === "cancel") return;
@@ -1923,6 +2021,44 @@
         enterAsUser($("#makeUserInput")?.value);
         return;
       }
+      if (e.target.closest("#saveNameBtn")) {
+        const n = String($("#editNameInput")?.value || "").trim().replace(/\s+/g, " ").slice(0, 24);
+        if (n.length < 2) { flash(t("userBad")); return; }
+        persistAuth({ ...state.auth, name: n });
+        applyChrome();
+        renderSettings();
+        return;
+      }
+      if (e.target.closest("#saveHandleBtn")) {
+        if (!isOwner()) return;
+        const box = $("#editHandleErr");
+        const show = (msg) => { if (box) { box.textContent = msg || ""; box.classList.toggle("hidden", !msg); } };
+        const parsed = window.AhdafSecure?.validHandle?.($("#editHandleInput")?.value, { admin: true, auth: state.auth });
+        if (!parsed?.ok) { show(t("handleBad")); return; }
+        const owner = state.auth?.id || ("u:" + parsed.handle);
+        if (window.AhdafSecure?.isTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
+        if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
+        persistAuth({ ...state.auth, handle: parsed.handle });
+        applyChrome();
+        renderSettings();
+        flash(t("handleSaved"));
+        return;
+      }
+      const badgeBtn = e.target.closest(".badge-dot");
+      if (badgeBtn?.dataset.badge && isOwner()) {
+        persistAuth({ ...state.auth, badge: badgeBtn.dataset.badge });
+        applyChrome();
+        renderSettings();
+        return;
+      }
+      if (e.target.closest("#supportSend")) {
+        tap();
+        window.AhdafSecure?.notifySupport?.(state.auth, $("#supportBox")?.value).then((r) => {
+          if (r?.ok) { if ($("#supportBox")) $("#supportBox").value = ""; flash(t("supportOk")); }
+          else flash(t("supportShort"));
+        });
+        return;
+      }
       if (e.target.closest("#verifyGo")) {
         tap();
         submitVerify();
@@ -2019,13 +2155,14 @@
 
   async function boot() {
     try {
+      if (state.auth) persistAuth(state.auth);
       applyChrome();
       bind();
       if (!state.auth) {
         setAuthCopy();
         $("#authLayer")?.classList.remove("hidden");
       } else if (state.auth.mode !== "guest" && !state.auth.handle) {
-        showHandleSetup(state.auth.name);
+        showHandleSetup();
       }
       skeleton();
       try {

@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/app.css?v=24" />
+  <link rel="stylesheet" href="/css/app.css?v=25" />
 </head>
 <body>
   <div class="stage">
@@ -66,16 +66,15 @@
         </div>
       </div>
 
+      <div class="float-name" id="userLine">
+        <b id="userLineName"></b>
+        <span class="userline-badge" id="userLineBadge"></span>
+      </div>
       <header class="topbar" id="topbar">
         <button class="icon-btn hidden" id="backBtn" aria-label="رجوع">
           <svg viewBox="0 0 24 24" width="22" height="22"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
         <div class="topbar-text">
-          <div class="userline" id="userLine">
-            <b id="userLineName">زائر</b>
-            <span class="userline-badge" id="userLineBadge"></span>
-            <span class="userline-handle" id="userLineHandle"></span>
-          </div>
           <div class="eyebrow hidden" id="eyebrow">أهداف</div>
           <h1 id="pageTitle">المباريات</h1>
         </div>
@@ -120,7 +119,7 @@
     </div>
   </div>
   <script src="/js/google-config.js"></script>
-  <script src="/js/secure.js"></script>
+  <script src="/js/secure.js?v=25"></script>
   <script src="/js/google-sync.js"></script>
   <script src="/js/app.js?v=24"></script>
 </body>
