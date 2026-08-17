@@ -152,6 +152,8 @@
       banUser: "إزالة الحساب",
       banAsk: "إزالة هذا الحساب نهائياً؟",
       banOk: "تم حذف الحساب",
+      banFail: "تعذّر حذف الحساب. أعد المحاولة.",
+      banWait: "جارٍ حذف الحساب…",
       verifyAsk: "اضغط لإرسال طلب التوثيق. يصل للأدمن مباشرة.",
       grantOk: "تم التوثيق",
       grantNo: "أُزيل التوثيق",
@@ -350,6 +352,8 @@
       banUser: "Remove account",
       banAsk: "Remove this account permanently?",
       banOk: "Account removed",
+      banFail: "Could not remove the account. Try again.",
+      banWait: "Removing account…",
       verifyAsk: "Tap to send a verification request. It goes to the admin.",
       grantOk: "Verified",
       grantNo: "Verification removed",
@@ -641,6 +645,26 @@
     if (grant) return { handle: h, name: grant.name || "", email: grant.email || "", granted: !!grant.on };
     return { handle: h, name: "", email: "", granted: false, missing: true };
   }
+  function wipeLocalUser(handle) {
+    const h = String(handle || "").trim().toLowerCase();
+    if (!h) return;
+    window.AhdafSecure?.setGrant?.(h, { on: false });
+    const all = vaultAll();
+    let changed = false;
+    for (const [k, rec] of Object.entries(all)) {
+      if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
+      delete all[k];
+      changed = true;
+    }
+    if (changed) {
+      try { localStorage.setItem("ahdaf-vault", JSON.stringify(all)); } catch {}
+    }
+    try {
+      const claimed = JSON.parse(localStorage.getItem("ahdaf-handles") || "[]");
+      const next = claimed.filter((x) => String(x.handle || "").toLowerCase() !== h);
+      if (next.length !== claimed.length) localStorage.setItem("ahdaf-handles", JSON.stringify(next));
+    } catch {}
+  }
   function stampUserVerified(handle, on, extra) {
     const h = String(handle || "").trim().toLowerCase();
     if (!h) return;
@@ -902,10 +926,11 @@
   }
   function avatarHTML(person, cls) {
     const src = person?.picture || "";
+    const size = cls === "sm" ? 22 : cls === "lg" ? 64 : 40;
     if (src) {
       return `<span class="acc-ava ${cls || ""} has-img"><img src="${esc(src)}" alt=""></span>`;
     }
-    return `<span class="acc-ava ${cls || ""} empty" aria-hidden="true"><svg class="ava-ph" viewBox="0 0 24 24"><circle cx="12" cy="8.6" r="3.4" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M5.8 18.4c.9-3 3.1-4.6 6.2-4.6s5.3 1.6 6.2 4.6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>`;
+    return `<svg class="acc-ava ${cls || ""} empty" viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true"><circle class="ava-disk" cx="32" cy="32" r="32"/><circle cx="32" cy="23.5" r="9" fill="none" stroke="currentColor" stroke-width="3"/><path d="M14 51c2.4-10.4 8.6-15.6 18-15.6S47.6 40.6 50 51" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>`;
   }
   function compressPhoto(file) {
     return new Promise((resolve, reject) => {
@@ -2916,14 +2941,25 @@
         const h = ban.dataset.ban;
         if (!h) return;
         if (!window.confirm(t("banAsk") + " @" + h)) return;
-        window.AhdafSecure?.cloudRemoveUser?.(h).then((ok) => {
+        ban.disabled = true;
+        flash(t("banWait"));
+        (window.AhdafSecure?.cloudRemoveUser?.(h) || Promise.resolve(false)).then((ok) => {
+          wipeLocalUser(h);
           if (ok) {
-            window.AhdafSecure?.setGrant?.(h, { on: false });
             flash(t("banOk"));
             const box = $("#grantBox");
             if (box) box.innerHTML = "";
-          } else flash(t("error"));
-        }).catch(() => flash(t("error")));
+            const page = state.stack[state.stack.length - 1];
+            if (page?.type === "admin-inbox") renderAdminInbox();
+          } else {
+            flash(t("banFail"));
+            ban.disabled = false;
+          }
+        }).catch(() => {
+          wipeLocalUser(h);
+          flash(t("banFail"));
+          ban.disabled = false;
+        });
         return;
       }
       if (e.target.closest("#verifyGo")) {

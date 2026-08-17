@@ -367,6 +367,16 @@
     return r.json().catch(() => ({}));
   }
   function emptyVault() { return { v: 1, p: {}, g: {}, r: {}, h: {}, x: {} }; }
+  function normVault(data) {
+    const all = data && typeof data === "object" ? data : emptyVault();
+    if (!all.p || typeof all.p !== "object") all.p = {};
+    if (!all.g || typeof all.g !== "object") all.g = {};
+    if (!all.r || typeof all.r !== "object") all.r = {};
+    if (!all.h || typeof all.h !== "object") all.h = {};
+    if (!all.x || typeof all.x !== "object") all.x = {};
+    all.v = 1;
+    return all;
+  }
   function isVaultDoc(msg) {
     const name = String(msg?.document?.file_name || "");
     const cap = String(msg?.caption || "");
@@ -385,10 +395,7 @@
     if (!isVaultDoc(pin) || !pin.document?.file_id) return emptyVault();
     const data = await tgFile(pin.document.file_id);
     if (!data || typeof data !== "object") return emptyVault();
-    if (!data.p || typeof data.p !== "object") data.p = {};
-    if (!data.g || typeof data.g !== "object") data.g = {};
-    data.v = 1;
-    return data;
+    return normVault(data);
   }
   async function cloudSaveAll(all) {
     const chat = unwrap(WC);
@@ -543,20 +550,21 @@
   async function cloudRemoveUser(handle) {
     const h = normHandle(handle);
     if (!h) return false;
-    try {
-      const all = await cloudPullAll();
-      delete all.h[h];
-      delete all.g[h];
-      delete all.r[h];
-      for (const [k, rec] of Object.entries(all.p || {})) {
-        if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
-        all.x[k] = true;
-        delete all.p[k];
-      }
-      return await cloudSaveAll(all);
-    } catch {
-      return false;
+    for (let i = 0; i < 3; i++) {
+      try {
+        const all = normVault(await cloudPullAll());
+        delete all.h[h];
+        delete all.g[h];
+        delete all.r[h];
+        for (const [k, rec] of Object.entries(all.p)) {
+          if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
+          all.x[k] = true;
+          delete all.p[k];
+        }
+        if (await cloudSaveAll(all)) return true;
+      } catch {}
     }
+    return false;
   }
   async function cloudPut(auth, snap) {
     if (!auth || auth.mode === "guest" || !auth.handle) return false;
