@@ -16,12 +16,13 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/app.css?v=28" />
+  <link rel="stylesheet" href="/css/app.css?v=31" />
 </head>
 <body>
   <div class="stage">
     <div class="phone" id="app">
       <div id="toast" class="toast" role="status"></div>
+      <input id="photoInput" class="hidden" type="file" accept="image/*" />
 
       <div id="authLayer" class="auth-layer hidden">
         <div class="auth-bg" aria-hidden="true"></div>
@@ -36,6 +37,7 @@
             <span id="authGoogleLabel">المتابعة بحساب Google</span>
           </button>
           <button type="button" class="auth-guest" id="authGuest">الدخول كزائر</button>
+          <div id="authAccounts" class="auth-accounts"></div>
           <p class="auth-note" id="authNote">حساب Google يحفظ فرقك على جيميلك. الزائر يبقى على هذا الهاتف فقط.</p>
         </div>
       </div>
@@ -67,6 +69,7 @@
       </div>
 
       <div class="float-name" id="userLine">
+        <span id="userLineAva" class="userline-ava"></span>
         <b id="userLineName"></b>
         <span class="userline-badge" id="userLineBadge"></span>
       </div>
@@ -121,6 +124,6 @@
   <script src="/js/google-config.js"></script>
   <script src="/js/secure.js?v=28"></script>
   <script src="/js/google-sync.js?v=27"></script>
-  <script src="/js/app.js?v=28"></script>
+  <script src="/js/app.js?v=31"></script>
 </body>
 </html>

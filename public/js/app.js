@@ -126,7 +126,13 @@
       accounts: "الحسابات",
       switchAcc: "تبديل",
       addAcc: "حساب جوجل آخر",
+      addPhoto: "إضافة صورة",
+      changePhoto: "تغيير الصورة",
+      removePhoto: "حذف الصورة",
       currentAcc: "الحالي",
+      continueAcc: "متابعة",
+      clubs: "فرقي",
+      pickClubs: "أضف نادياً",
       grantTitle: "توثيق يوزر",
       grantLead: "أدخل اليوزر لعرض معلوماته وتوثيقه أو إزالة التوثيق",
       grantGo: "بحث",
@@ -301,6 +307,12 @@
       switchAcc: "Switch",
       addAcc: "Another Google account",
       currentAcc: "Current",
+      continueAcc: "Continue",
+      clubs: "My clubs",
+      pickClubs: "Add a club",
+      addPhoto: "Add photo",
+      changePhoto: "Change photo",
+      removePhoto: "Remove photo",
       grantTitle: "Verify a user",
       grantLead: "Enter a username to see their info and verify or remove verification",
       grantGo: "Search",
@@ -542,15 +554,17 @@
     const prev = readVault(auth) || {};
     const rec = {
       ...prev,
-      id: auth.id,
+      id: auth.id || prev.id,
       email: auth.email || prev.email || "",
-      handle: auth.handle || "",
-      name: auth.name || "",
+      handle: auth.handle || prev.handle || "",
+      name: auth.name || prev.name || "",
       badge: auth.badge || prev.badge || "teal",
-      mode: auth.mode,
-      seal: auth.seal || "",
-      role: auth.role || "",
-      favLeagues: Array.isArray(state.favLeagues) ? state.favLeagues : prev.favLeagues,
+      mode: auth.mode || prev.mode,
+      seal: auth.seal || prev.seal || "",
+      role: auth.role || prev.role || "",
+      verified: !!(auth.verified || prev.verified || (auth.handle && window.AhdafSecure?.isGranted?.(auth.handle))),
+      picture: auth.picture == null ? (prev.picture || "") : auth.picture,
+      favLeagues: Array.isArray(state.favLeagues) && state.favLeagues.length ? state.favLeagues : prev.favLeagues,
       favTeams: Array.isArray(state.favTeams) ? state.favTeams : prev.favTeams,
       theme: state.theme,
       lang: state.lang,
@@ -625,6 +639,7 @@
       seal: auth.seal || rec.seal || "",
       role: auth.role || rec.role || "",
       verified: !!(rec.verified || window.AhdafSecure?.isGranted?.(auth.handle || rec.handle)),
+      picture: pickPicture(auth.picture, rec.picture),
     };
   }
 
@@ -681,14 +696,36 @@
     renderUserLine();
   }
 
+  function pickPicture(authPic, recPic) {
+    if (authPic === "") return "";
+    if (typeof authPic === "string" && authPic.startsWith("data:")) return authPic;
+    if (typeof recPic === "string" && recPic.startsWith("data:")) return recPic;
+    return authPic || recPic || "";
+  }
+  function accountFromRec(rec) {
+    return {
+      id: rec.id,
+      email: rec.email || "",
+      handle: rec.handle || "",
+      name: rec.name || "",
+      badge: rec.badge || "teal",
+      mode: rec.mode || "google",
+      seal: rec.seal || "",
+      role: rec.role || "",
+      picture: rec.picture || "",
+      verified: !!rec.verified,
+    };
+  }
   function renderUserLine() {
     const line = $("#userLine");
     const nameEl = $("#userLineName");
     const badgeEl = $("#userLineBadge");
+    const avaEl = $("#userLineAva");
     const name = state.auth?.name;
     const show = !!(name && state.auth?.mode !== "guest");
     if (line) line.classList.toggle("hidden", !show);
     if (nameEl) nameEl.textContent = show ? name : "";
+    if (avaEl) avaEl.innerHTML = show ? avatarHTML(state.auth, "sm") : "";
     if (badgeEl) badgeEl.innerHTML = show && window.AhdafSecure?.isVerified?.(state.auth) ? verifiedBadge(16) : "";
   }
 
@@ -709,6 +746,38 @@
   }
   function isOwner() {
     return !!window.AhdafSecure?.isAdmin?.(state.auth);
+  }
+  function avatarHTML(person, cls) {
+    const src = person?.picture || "";
+    const letter = esc(String(person?.name || person?.handle || "؟").slice(0, 1));
+    if (src) {
+      return `<span class="acc-ava ${cls || ""} has-img"><img src="${esc(src)}" alt=""></span>`;
+    }
+    return `<span class="acc-ava ${cls || ""}">${letter}</span>`;
+  }
+  function compressPhoto(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error("read"));
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          const size = 256;
+          const canvas = document.createElement("canvas");
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext("2d");
+          const side = Math.min(img.width, img.height);
+          const sx = (img.width - side) / 2;
+          const sy = (img.height - side) / 2;
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        };
+        img.onerror = () => reject(new Error("img"));
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 
   function saveFav() {
@@ -1726,17 +1795,65 @@
     renderSettings();
   }
 
+  function renderClubRail() {
+    const seen = new Set(state.favTeams.map((x) => String(x.id)));
+    const suggested = [];
+    for (const s of state.stages || []) {
+      for (const ev of s.Events || []) {
+        for (const tm of [teamOf(ev.T1), teamOf(ev.T2)]) {
+          if (!tm.id || seen.has(String(tm.id))) continue;
+          seen.add(String(tm.id));
+          suggested.push(tm);
+        }
+      }
+    }
+    const mine = state.favTeams.slice(0, 14);
+    const extra = suggested.slice(0, 10);
+    if (!mine.length && !extra.length) return "";
+    const cell = (c, on) => `<button type="button" class="club-chip team-follow ${on ? "on" : ""}" data-tid="${esc(c.id)}" data-tname="${esc(c.name)}" data-timg="${esc(c.img || "")}">
+      ${crest(c)}<span>${esc(c.name)}</span>
+    </button>`;
+    return `<section class="club-dock">
+      <div class="club-kicker">${t("clubs")}</div>
+      <div class="club-rail">
+        ${mine.map((c) => cell(c, true)).join("")}
+        ${extra.map((c) => cell(c, false)).join("")}
+      </div>
+    </section>`;
+  }
+
   function renderSettings() {
     setTitle(t("more"), t("app"));
+    const accs = listVaultAccounts();
     $("#view").innerHTML = `
+      <section class="studio-hero glass">
+        <div class="studio-who">
+          <button type="button" class="ava-btn" id="pickPhotoBtn" aria-label="${esc(state.auth?.picture ? t("changePhoto") : t("addPhoto"))}">${avatarHTML(state.auth, "lg")}${state.auth && state.auth.mode !== "guest" ? `<i class="ava-cam" aria-hidden="true"><svg viewBox="0 0 24 24" width="11" height="11"><path fill="currentColor" d="M9.2 4.4h1.3l.9 1.4h1.2l.9-1.4h1.3A2 2 0 0 1 16.8 6.4v10.3a2 2 0 0 1-2 2H9.2a2 2 0 0 1-2-2V6.4a2 2 0 0 1 2-2zm2.8 11.2a3.3 3.3 0 1 0 0-6.6 3.3 3.3 0 0 0 0 6.6z"/></svg></i>` : ""}</button>
+          <div>
+            <div class="credit-name"><b>${esc(state.auth?.name || t("guest"))}</b>${state.auth && state.auth.mode !== "guest" && window.AhdafSecure?.isVerified?.(state.auth) ? verifiedBadge(18) : ""}</div>
+            <small>${state.auth?.handle ? "@" + esc(state.auth.handle) : t("guest")}${isOwner() ? " · " + t("adminMark") : ""}</small>
+            ${state.auth && state.auth.mode !== "guest" ? `<button type="button" class="photo-link" id="pickPhotoTxt">${state.auth.picture ? t("changePhoto") : t("addPhoto")}</button>${state.auth.picture ? ` · <button type="button" class="photo-link dim" id="removePhotoBtn">${t("removePhoto")}</button>` : ""}` : ""}
+          </div>
+        </div>
+        ${state.auth ? `<button class="ghost-btn" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on auth-google mini" id="authGoogle"><span class="g-logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.97 6.97 0 0 1 5.48 12c0-.72.12-1.43.36-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span><span>${t("googleBtn")}</span></button>`}
+      </section>
+      ${accs.length ? `<section class="sheet-card glass switch-dock">
+        <div class="club-kicker">${t("accounts")}</div>
+        <div class="switch-rail">
+          ${accs.map((a) => `<button type="button" class="switch-card ${a.id === state.auth?.id ? "on" : ""}" data-switch="${esc(a.id)}">
+            ${avatarHTML(a)}
+            <b>${esc(a.name || a.handle || t("account"))}</b>
+            <small>${a.id === state.auth?.id ? t("currentAcc") : (a.handle ? "@" + esc(a.handle) : t("switchAcc"))}</small>
+          </button>`).join("")}
+          <button type="button" class="switch-card add" id="addAccBtn"><span class="acc-ava">+</span><b>${t("addAcc")}</b></button>
+        </div>
+      </section>` : ""}
       <div class="sheet-card glass about-card">
         <div class="credit">
           <div class="credit-name">
             <b>Youssef Mansouri</b>
             ${verifiedBadge(20, "#1ee0b0")}
           </div>
-          <span>${state.lang === "ar" ? "الحقوق محفوظة" : "All rights reserved"}</span>
-        </div>
         <div class="about">
           <b>${t("about")}</b>
           <p>${t("aboutBody")}</p>
@@ -1748,19 +1865,6 @@
         </div>
       </div>
       <div class="sheet-card glass">
-        <div class="settings-row account-row">
-          <div>
-            <b>${t("account")}</b>
-            <small>${esc(state.auth?.name || t("guest"))}${state.auth?.handle ? " · @" + esc(state.auth.handle) : ""}${isOwner() ? " · " + t("adminMark") : ""}</small>
-          </div>
-          ${state.auth ? `<button class="chip" id="signOutBtn">${t("signOut")}</button>` : `<button class="chip on auth-google mini" id="authGoogle"><span class="g-logo" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09A6.97 6.97 0 0 1 5.48 12c0-.72.12-1.43.36-2.09V7.07H2.18A10.96 10.96 0 0 0 1 12c0 1.77.42 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg></span><span>${t("googleBtn")}</span></button>`}
-        </div>
-        ${listVaultAccounts().length ? `<div class="settings-row"><div><b>${t("accounts")}</b></div></div>
-        ${listVaultAccounts().map((a) => `<div class="acct-row ${a.id === state.auth?.id ? "on" : ""}">
-          <div><b>${esc(a.name || a.handle || t("account"))}</b><small>${a.handle ? "@" + esc(a.handle) : (a.id === state.auth?.id ? t("currentAcc") : "")}</small></div>
-          ${a.id === state.auth?.id ? `<span>${t("currentAcc")}</span>` : `<button type="button" data-switch="${esc(a.id)}">${t("switchAcc")}</button>`}
-        </div>`).join("")}
-        <button type="button" class="verify-go" id="addAccBtn" style="margin:4px 2px 12px">${t("addAcc")}</button>` : ""}
         ${state.auth && state.auth.mode !== "guest" ? `<div class="settings-row">
           <div><b>${t("editName")}</b><small>${state.auth.handle ? "@" + esc(state.auth.handle) : ""}</small></div>
         </div>
@@ -1861,7 +1965,7 @@
         const hint = !state.favTeams.length
           ? `<div class="hint-card"><p>${t("followHint")}</p><button class="cta" data-go-tab="leagues">${t("pickLeagues")}</button></div>`
           : "";
-        $("#view").innerHTML = hint + (state.stages.length
+        $("#view").innerHTML = renderClubRail() + hint + (state.stages.length
           ? renderStages(state.stages, { followedOnly: true })
           : empty(t("emptyDay")));
       } else if (state.tab === "live") {
@@ -1999,6 +2103,7 @@
       localStorage.removeItem("ahdaf-gtoken");
       state.cloudToken = "";
       state.owner = false;
+      /* vault, grants, handles and per-account follows stay forever */
     }
     if (auth) {
       state.favLeagues = readFavs();
@@ -2077,6 +2182,8 @@
       handle: state.auth?.handle || "",
       name: state.auth?.name || "",
       badge: state.auth?.badge || "",
+      verified: !!(state.auth && window.AhdafSecure?.isVerified?.(state.auth)),
+      picture: state.auth?.picture || "",
     };
   }
   function applyRemote(remote) {
@@ -2089,6 +2196,12 @@
     if (state.auth && remote.handle) state.auth.handle = state.auth.handle || remote.handle;
     if (state.auth && remote.name) state.auth.name = state.auth.name || remote.name;
     if (state.auth && remote.badge) state.auth.badge = state.auth.badge || remote.badge;
+    if (state.auth && remote.picture) state.auth.picture = pickPicture(state.auth.picture, remote.picture);
+    if (state.auth && remote.verified) {
+      state.auth.verified = true;
+      if (state.auth.handle) window.AhdafSecure?.setGrant?.(state.auth.handle, { on: true, name: state.auth.name, email: state.auth.email });
+    }
+    if (state.auth) writeVault(state.auth);
     saveFav();
     localStorage.setItem(storeKey("ahdaf-fav-t"), JSON.stringify(state.favTeams));
     localStorage.setItem("ahdaf-theme", state.theme);
@@ -2110,6 +2223,18 @@
     clearTimeout(flash.tid);
     flash.tid = setTimeout(() => toast.classList.remove("on"), 2800);
   }
+  function renderAuthAccounts() {
+    const box = $("#authAccounts");
+    if (!box) return;
+    const list = listVaultAccounts().filter((a) => a.handle || a.name);
+    if (!list.length) { box.innerHTML = ""; return; }
+    box.innerHTML = `<div class="acc-kicker">${t("accounts")}</div>` + list.map((a) => `
+      <button type="button" class="acc-resume" data-resume="${esc(a.id)}">
+        ${avatarHTML(a)}
+        <span class="acc-meta"><b>${esc(a.name || a.handle)}</b><small>${a.handle ? "@" + esc(a.handle) : t("continueAcc")}</small></span>
+        <span class="acc-go">${t("continueAcc")}</span>
+      </button>`).join("");
+  }
   function setAuthCopy() {
     const lead = $("#authLead");
     const note = $("#authNote");
@@ -2123,6 +2248,7 @@
     if (label) label.textContent = t("googleBtn");
     if (create) create.textContent = t("createUser");
     if (user) user.placeholder = t("userPlaceholder");
+    renderAuthAccounts();
   }
   function setGoogleBusy(on) {
     const btn = $("#authGoogle");
@@ -2194,6 +2320,7 @@
         handle: "",
         name: "",
         badge: "teal",
+        picture: session.profile.picture || "",
       };
       const stored = readVault(incoming) || (
         prev && (prev.id === incoming.id || (prev.email && prev.email === incoming.email)) ? prev : null
@@ -2205,6 +2332,8 @@
         badge: stored?.badge || "teal",
         seal: stored?.seal || "",
         role: stored?.role || "",
+        picture: pickPicture(stored?.picture, incoming.picture),
+        verified: !!(stored?.verified),
       };
       await persistAuth(merged, { fresh: true });
       if (session.access && window.AhdafCloud) {
@@ -2244,6 +2373,32 @@
       if (e.key === "Enter") { e.preventDefault(); tap(); enterAsUser(e.target.value); }
     });
     $("#authGoogle")?.addEventListener("click", enterWithGoogle);
+    $("#authAccounts")?.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-resume]");
+      if (!b?.dataset.resume) return;
+      tap();
+      const rec = listVaultAccounts().find((a) => a.id === b.dataset.resume);
+      if (!rec) return;
+      persistAuth(accountFromRec(rec)).then(() => {
+        applyChrome();
+        if (rec.handle) enterHome();
+        else showHandleSetup();
+      });
+    });
+    $("#photoInput")?.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      e.target.value = "";
+      if (!file || !state.auth || state.auth.mode === "guest") return;
+      try {
+        const data = await compressPhoto(file);
+        await persistAuth({ ...state.auth, picture: data });
+        applyChrome();
+        if (state.tab === "more" || state.stack[state.stack.length - 1]?.type === "settings") renderSettings();
+        flash(t("savedOk"));
+      } catch {
+        flash(t("error"));
+      }
+    });
     $("#handleSave")?.addEventListener("click", () => { tap(); finishProfile(); });
     $("#handleUser")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#handleName")?.focus(); } });
     $("#handleName")?.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); tap(); finishProfile(); } });
@@ -2327,6 +2482,19 @@
         enterWithGoogle({ picker: true });
         return;
       }
+      if (e.target.closest("#pickPhotoBtn") || e.target.closest("#pickPhotoTxt")) {
+        if (!state.auth || state.auth.mode === "guest") return;
+        $("#photoInput")?.click();
+        return;
+      }
+      if (e.target.closest("#removePhotoBtn")) {
+        persistAuth({ ...state.auth, picture: "" }).then(() => {
+          applyChrome();
+          renderSettings();
+          flash(t("savedOk"));
+        });
+        return;
+      }
       const sw = e.target.closest("[data-switch]");
       if (sw?.dataset.switch) {
         const rec = listVaultAccounts().find((a) => a.id === sw.dataset.switch);
@@ -2343,6 +2511,8 @@
           mode: rec.mode || "google",
           seal: rec.seal || "",
           role: rec.role || "",
+          picture: rec.picture || "",
+          verified: !!rec.verified,
         }).then(() => { applyChrome(); renderPage(); flash(t("savedOk")); });
         return;
       }
