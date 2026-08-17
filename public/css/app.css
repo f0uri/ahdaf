@@ -1870,6 +1870,9 @@ html[data-theme="light"] .grant-pill {
   box-shadow: 0 10px 24px rgba(255, 69, 58, 0.26);
 }
 .grant-btn:active { transform: scale(0.98); }
+.grant-actions { display: grid; gap: 8px; margin-top: 14px; }
+.grant-actions .grant-btn { margin-top: 0; }
+.grant-btn.ban { background: transparent; color: #ff453a; box-shadow: inset 0 0 0 1.4px #ff453a; }
 
 .grant-pill.handle, .grant-pill.mail { unicode-bidi: isolate; }
 .grant-pill.mail { color: var(--secondary); font-weight: 650; font-size: 12px; }

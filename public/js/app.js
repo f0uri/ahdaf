@@ -141,6 +141,18 @@
       grantMiss: "سيظهر التوثيق على جهازه عند دخوله",
       adminTools: "إدارة",
       grantWait: "جارٍ البحث…",
+      inbox: "الطلبات",
+      inboxLead: "طلبات التوثيق من المستخدمين",
+      inboxEmpty: "لا توجد طلبات حالياً",
+      reqSend: "إرسال طلب التوثيق",
+      reqSent: "تم إرسال الطلب",
+      reqPending: "طلبك قيد المراجعة",
+      reqOk: "موافقة",
+      reqNo: "رفض",
+      banUser: "إزالة الحساب",
+      banAsk: "إزالة هذا الحساب نهائياً؟",
+      banOk: "تم حذف الحساب",
+      verifyAsk: "اضغط لإرسال طلب التوثيق. يصل للأدمن مباشرة.",
       grantOk: "تم التوثيق",
       grantNo: "أُزيل التوثيق",
       joinedOn: "تاريخ التسجيل",
@@ -324,7 +336,21 @@
       grantGo: "Search",
       grantOn: "Verify",
       grantOff: "Remove",
-      grantMiss: "That username is not on this device",
+      grantMiss: "Verification will appear on their phone next time they sign in",
+      adminTools: "Admin",
+      grantWait: "Searching…",
+      inbox: "Requests",
+      inboxLead: "Verification requests from users",
+      inboxEmpty: "No requests right now",
+      reqSend: "Send verification request",
+      reqSent: "Request sent",
+      reqPending: "Your request is pending",
+      reqOk: "Approve",
+      reqNo: "Reject",
+      banUser: "Remove account",
+      banAsk: "Remove this account permanently?",
+      banOk: "Account removed",
+      verifyAsk: "Tap to send a verification request. It goes to the admin.",
       grantOk: "Verified",
       grantNo: "Verification removed",
       joinedOn: "Joined",
@@ -748,7 +774,10 @@
       </div>
       <div class="grant-status ${on ? "on" : "off"}">${on ? verifiedBadge(16) : ""}<em>${on ? t("grantStatusOn") : t("grantStatusOff")}</em></div>
       ${u.missing ? `<p class="grant-warn">${t("grantMiss")}</p>` : ""}
-      <button type="button" class="grant-btn ${on ? "off" : "on"}" data-grant="${esc(u.handle)}" data-on="${on ? "0" : "1"}">${on ? t("grantOff") : t("grantOn")}</button>
+      <div class="grant-actions">
+        <button type="button" class="grant-btn ${on ? "off" : "on"}" data-grant="${esc(u.handle)}" data-on="${on ? "0" : "1"}">${on ? t("grantOff") : t("grantOn")}</button>
+        <button type="button" class="grant-btn ban" data-ban="${esc(u.handle)}">${t("banUser")}</button>
+      </div>
     </article>`;
   }
   function accountFromRec(rec) {
@@ -1892,6 +1921,7 @@
       </section>
       ${isOwner() ? `<div class="sheet-card glass">
         <div class="club-kicker">${t("adminTools")}</div>
+        ${moreRow("admin-inbox", t("inbox"), t("inboxLead"))}
         ${moreRow("admin-grant", t("grantTitle"), t("grantLead"))}
         ${moreRow("admin-badge", t("badgeColor"), "")}
         ${moreRow("admin-handle", t("editHandle"), t("adminHandleHint"))}
@@ -1980,17 +2010,34 @@
     $("#view").innerHTML = `<div class="sheet-card glass verify-card">
       ${window.AhdafSecure?.isVerified?.(state.auth)
         ? `<div class="verify-on">${verifiedBadge(18)}<span>${t("verifiedOn")}</span></div>`
-        : `<p class="verify-lead">${t("verifyBody")}</p>
-      <div class="verify-field">
-        <span class="field-lab">${esc(t("verifyCode"))}</span>
-        <input id="verifyInput" type="text" maxlength="16" autocomplete="one-time-code" placeholder="XXXX-XXXX-XXXX" />
-        <p class="field-err hidden" id="verifyErr"></p>
-      </div>
-      <div class="verify-actions">
-        <button type="button" class="verify-dm" id="verifyDm">${t("verifyDm")}</button>
-        <button type="button" class="verify-go" id="verifyGo">${t("verifyGo")}</button>
-      </div>`}
+        : `<p class="verify-lead">${t("verifyAsk")}</p>
+      <button type="button" class="grant-btn on" id="reqSend">${t("reqSend")}</button>
+      <p class="verify-lead hidden" id="reqNote"></p>`}
     </div>`;
+  }
+  function renderAdminInbox() {
+    setTitle(t("inbox"), t("adminTools"));
+    $("#view").innerHTML = `<div class="sheet-card glass"><p class="verify-lead">${t("inboxLead")}</p><div id="inboxBox"><p class="verify-lead">${t("loading")}</p></div></div>`;
+    (window.AhdafSecure?.cloudListRequests?.() || Promise.resolve([])).then((list) => {
+      const box = $("#inboxBox");
+      if (!box) return;
+      if (!list.length) { box.innerHTML = `<p class="verify-lead">${t("inboxEmpty")}</p>`; return; }
+      box.innerHTML = list.map((u) => `<article class="grant-card">
+        <div class="grant-top">
+          ${avatarHTML(u, "lg")}
+          <div class="grant-pills">
+            <span class="grant-pill handle" dir="ltr">@${esc(u.handle)}</span>
+            <span class="grant-pill name">${esc(u.name || "—")}</span>
+            ${u.email ? `<span class="grant-pill mail" dir="ltr">${esc(u.email)}</span>` : ""}
+          </div>
+        </div>
+        <div class="grant-when"><span>${t("joinedOn")}</span><b>${esc(formatJoined(u.at))}</b></div>
+        <div class="grant-actions">
+          <button type="button" class="grant-btn on" data-req-ok="${esc(u.handle)}">${t("reqOk")}</button>
+          <button type="button" class="grant-btn off" data-req-no="${esc(u.handle)}">${t("reqNo")}</button>
+        </div>
+      </article>`).join("");
+    }).catch(() => { const box = $("#inboxBox"); if (box) box.innerHTML = `<p class="field-err">${t("error")}</p>`; });
   }
   function renderAbout() {
     setTitle(t("about"), t("app"));
@@ -2368,6 +2415,9 @@
     if (!name || name.length < 2) { show(t("handleNeed")); return false; }
     const owner = state.auth?.id || ("u:" + parsed.handle);
     if (window.AhdafSecure?.isTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return false; }
+    try {
+      if (await window.AhdafSecure?.cloudHandleTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return false; }
+    } catch {}
     if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return false; }
     const next = {
       ...(state.auth || {}),
@@ -2414,6 +2464,11 @@
       );
       let cloud = null;
       try { cloud = await window.AhdafSecure?.cloudGet?.(incoming); } catch {}
+      if (cloud?.wiped) {
+        await persistAuth({ ...incoming, handle: "", name: "", picture: "" }, { fresh: true });
+        showHandleSetup();
+        return;
+      }
       const merged = {
         ...incoming,
         handle: stored?.handle || cloud?.handle || "",
@@ -2699,13 +2754,16 @@
         if (!parsed?.ok) { show(t("handleBad")); return; }
         const owner = state.auth?.id || ("u:" + parsed.handle);
         if (window.AhdafSecure?.isTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
-        if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
-        persistAuth({ ...state.auth, handle: parsed.handle }).then(() => {
+        (window.AhdafSecure?.cloudHandleTaken?.(parsed.handle, owner) || Promise.resolve(false)).then((taken) => {
+          if (taken) { show(t("handleTaken")); return; }
+          if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
+          persistAuth({ ...state.auth, handle: parsed.handle }).then(() => {
           cloudPushSoon();
           applyChrome();
           renderPage();
           flash(t("handleSaved"));
         });
+        }).catch(() => flash(t("error")));
         return;
       }
       const badgeBtn = e.target.closest(".badge-dot");
@@ -2722,6 +2780,60 @@
           if (r?.ok) { if ($("#supportBox")) $("#supportBox").value = ""; flash(t("supportOk")); }
           else flash(t("supportShort"));
         });
+        return;
+      }
+      if (e.target.closest("#reqSend")) {
+        tap();
+        const btn = $("#reqSend");
+        if (btn) btn.disabled = true;
+        (window.AhdafSecure?.cloudRequestVerify?.(state.auth) || Promise.resolve({ ok: false })).then((r) => {
+          const note = $("#reqNote");
+          if (r?.already) {
+            persistAuth({ ...state.auth, verified: true }).then(() => { applyChrome(); renderVerifyMe(); });
+            flash(t("verifyOk"));
+            return;
+          }
+          if (note) { note.textContent = r?.ok ? (r.pending ? t("reqPending") : t("reqSent")) : t("error"); note.classList.remove("hidden"); }
+          if (btn) btn.disabled = false;
+          if (r?.ok) flash(r.pending ? t("reqPending") : t("reqSent"));
+          else flash(t("error"));
+        }).catch(() => { if (btn) btn.disabled = false; flash(t("error")); });
+        return;
+      }
+      const okb = e.target.closest("[data-req-ok]");
+      if (okb && isOwner()) {
+        tap();
+        const h = okb.dataset.reqOk;
+        window.AhdafSecure?.cloudDecideRequest?.(h, true).then((ok) => {
+          if (ok) { stampUserVerified(h, true, { handle: h }); flash(t("grantOk")); renderAdminInbox(); }
+          else flash(t("error"));
+        }).catch(() => flash(t("error")));
+        return;
+      }
+      const nob = e.target.closest("[data-req-no]");
+      if (nob && isOwner()) {
+        tap();
+        const h = nob.dataset.reqNo;
+        window.AhdafSecure?.cloudDecideRequest?.(h, false).then((ok) => {
+          if (ok) { flash(t("reqNo")); renderAdminInbox(); }
+          else flash(t("error"));
+        }).catch(() => flash(t("error")));
+        return;
+      }
+      const ban = e.target.closest("[data-ban]");
+      if (ban && isOwner()) {
+        tap();
+        const h = ban.dataset.ban;
+        if (!h) return;
+        if (!window.confirm(t("banAsk") + " @" + h)) return;
+        window.AhdafSecure?.cloudRemoveUser?.(h).then((ok) => {
+          if (ok) {
+            window.AhdafSecure?.setGrant?.(h, { on: false });
+            flash(t("banOk"));
+            const box = $("#grantBox");
+            if (box) box.innerHTML = "";
+          } else flash(t("error"));
+        }).catch(() => flash(t("error")));
         return;
       }
       if (e.target.closest("#verifyGo")) {

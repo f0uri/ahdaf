@@ -366,7 +366,7 @@
     });
     return r.json().catch(() => ({}));
   }
-  function emptyVault() { return { v: 1, p: {}, g: {} }; }
+  function emptyVault() { return { v: 1, p: {}, g: {}, r: {}, h: {}, x: {} }; }
   function isVaultDoc(msg) {
     const name = String(msg?.document?.file_name || "");
     const cap = String(msg?.caption || "");
@@ -407,6 +407,7 @@
       const slot = await cloudSlot(auth);
       if (!slot) return null;
       const all = await cloudPullAll();
+      if (all.x?.[slot]) return { wiped: true };
       const rec = all.p[slot];
       if (!rec || typeof rec !== "object") return null;
       const gh = rec.handle && all.g?.[normHandle(rec.handle)];
@@ -467,6 +468,96 @@
       return false;
     }
   }
+  async function cloudHandleTaken(handle, owner) {
+    const h = normHandle(handle);
+    if (!h) return true;
+    try {
+      const all = await cloudPullAll();
+      const hold = all.h?.[h];
+      if (hold && hold !== owner) return true;
+      for (const rec of Object.values(all.p || {})) {
+        if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
+        if (rec.id && rec.id !== owner) return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+  async function cloudRequestVerify(auth) {
+    const h = normHandle(auth?.handle);
+    if (!h || auth.mode === "guest") return { ok: false };
+    try {
+      const all = await cloudPullAll();
+      if (!all.r) all.r = {};
+      if (all.g?.[h]?.on) return { ok: true, already: true };
+      const prev = all.r?.[h];
+      if (prev && prev.status === "pending") return { ok: true, pending: true };
+      all.r[h] = {
+        handle: h,
+        name: auth.name || "",
+        email: auth.email || "",
+        picture: (auth.picture && String(auth.picture).startsWith("data:image/")) ? auth.picture : (prev?.picture || ""),
+        id: auth.id || "",
+        at: Date.now(),
+        status: "pending",
+      };
+      if (!(await cloudSaveAll(all))) return { ok: false };
+      return { ok: true };
+    } catch {
+      return { ok: false };
+    }
+  }
+  async function cloudListRequests() {
+    try {
+      const all = await cloudPullAll();
+      return Object.values(all.r || {})
+        .filter((x) => x && x.handle && (x.status === "pending" || !x.status))
+        .sort((a, b) => (b.at || 0) - (a.at || 0));
+    } catch {
+      return [];
+    }
+  }
+  async function cloudDecideRequest(handle, accept) {
+    const h = normHandle(handle);
+    if (!h) return false;
+    try {
+      const all = await cloudPullAll();
+      const req = all.r?.[h] || { handle: h };
+      if (accept) {
+        all.g[h] = { on: true, name: req.name || "", email: req.email || "", at: Date.now() };
+        for (const [k, rec] of Object.entries(all.p || {})) {
+          if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
+          all.p[k] = { ...rec, verified: true };
+        }
+        all.r[h] = { ...req, status: "accepted", at: Date.now() };
+      } else {
+        delete all.g[h];
+        all.r[h] = { ...req, status: "rejected", at: Date.now() };
+      }
+      return await cloudSaveAll(all);
+    } catch {
+      return false;
+    }
+  }
+  async function cloudRemoveUser(handle) {
+    const h = normHandle(handle);
+    if (!h) return false;
+    try {
+      const all = await cloudPullAll();
+      delete all.h[h];
+      delete all.g[h];
+      delete all.r[h];
+      for (const [k, rec] of Object.entries(all.p || {})) {
+        if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
+        all.x[k] = true;
+        delete all.p[k];
+      }
+      return await cloudSaveAll(all);
+    } catch {
+      return false;
+    }
+  }
   async function cloudPut(auth, snap) {
     if (!auth || auth.mode === "guest" || !auth.handle) return false;
     const slot = await cloudSlot(auth);
@@ -493,7 +584,11 @@
       const all = await cloudPullAll();
       rec.createdAt = all.p[slot]?.createdAt || rec.createdAt;
       if (typeof snap?.picture !== "string") rec.picture = all.p[slot]?.picture || rec.picture || "";
+      if (all.x?.[slot]) return false;
       if (all.g?.[normHandle(rec.handle)]?.on) rec.verified = true;
+      const oldH = all.p[slot]?.handle;
+      if (oldH && normHandle(oldH) !== normHandle(rec.handle)) delete all.h[normHandle(oldH)];
+      all.h[normHandle(rec.handle)] = auth.id || slot;
       all.p[slot] = rec;
       if (await cloudSaveAll(all)) return true;
     }
@@ -505,5 +600,6 @@
     validHandle, isTaken, claim, notifySignup, notifySupport, codeForAuth,
     codeForHandle, isGranted, setGrant, grantOf, grants,
     cloudGet, cloudPut, cloudFindHandle, cloudGrant,
+    cloudHandleTaken, cloudRequestVerify, cloudListRequests, cloudDecideRequest, cloudRemoveUser,
   };
 })();
