@@ -20,3 +20,4 @@ ios/App/build/
 !debug.keystore
 !signing/ahdaf-debug.keystore
 .capacitor/
+__pycache__/
