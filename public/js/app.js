@@ -76,6 +76,11 @@
       dhikrHint: "تظهر لخمس ثوانٍ أثناء التصفح",
       followTeam: "متابعة",
       followingTeam: "متابَع",
+      about: "حول أهداف",
+      aboutBody: "أهداف تطبيق عربي لنتائج كرة القدم: مباشر، مواعيد، ترتيب، تشكيلات وأحداث. تتابع فرقك ودورياتك فقط، مع الوديات، بتوقيت المغرب وتصميم هادئ.",
+      aboutFeat1: "نتائج ومباشر لكل الدوريات والكؤوس",
+      aboutFeat2: "فرقي ودورياتي في الصفحة الرئيسية",
+      aboutFeat3: "ترتيب، تشكيلات، إحصائيات وأحداث",
       months: ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
       theater: "وضع المشاهدة",
       channels: "أين تشاهد",
@@ -715,11 +720,13 @@
       const dn = dayLabel(esdYmd(ev.Esd));
       if (dn) when = `${dn}\n${st.label}`;
     }
-    return `<article class="match" data-eid="${esc(ev.Eid)}" data-sid="${esc(stage.Sid || "")}" data-ccd="${esc(stage.Ccd || "")}" data-scd="${esc(stage.Scd || "")}" data-cid="${esc(stage.CompId || stage.Sid || "")}">
-      <div class="mtime ${st.kind}">${esc(when)}</div>
-      <div class="mside home ${w1}"><span class="nm">${esc(t1.name)}</span>${crest(t1)}</div>
+    const fav1 = isFavTeam(t1.id);
+    const fav2 = isFavTeam(t2.id);
+    return `<article class="match ${st.kind === "live" ? "is-live" : ""}" data-eid="${esc(ev.Eid)}" data-sid="${esc(stage.Sid || "")}" data-ccd="${esc(stage.Ccd || "")}" data-scd="${esc(stage.Scd || "")}" data-cid="${esc(stage.CompId || stage.Sid || "")}">
+      <div class="mtime ${st.kind}">${st.kind === "live" ? `<i class="lp"></i>` : ""}${esc(when)}</div>
+      <div class="mside home ${w1} ${fav1 ? "fav" : ""}"><span class="nm">${esc(t1.name)}</span>${crest(t1)}</div>
       <div class="mscore" dir="ltr">${showScore ? `${esc(s1)}<i>-</i>${esc(s2)}` : "–"}</div>
-      <div class="mside away ${w2}">${crest(t2)}<span class="nm">${esc(t2.name)}</span></div>
+      <div class="mside away ${w2} ${fav2 ? "fav" : ""}">${crest(t2)}<span class="nm">${esc(t2.name)}</span></div>
     </article>`;
   }
 
