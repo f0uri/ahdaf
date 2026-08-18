@@ -116,11 +116,6 @@
       handleTaken: "هذا اليوزر مستخدم أو مشابه ليوزر آخر",
       handleCheckFail: "تعذّر التحقق من اليوزر. أعد المحاولة.",
       handleNeed: "أدخل اليوزر والاسم",
-      ossTitle: "مكتبات مفتوحة المصدر",
-      ossLead: "إشعارات الطرف الثالث",
-      ossIntro: "المكوّنات التالية مرخّصة ضمن تطبيق أهداف. نعرض نسبتها كما تقتضي رخصها.",
-      ossApache: "رخصة أباتشي 2.0",
-      ossApacheHint: "عدد من مكتبات أندرويد مضمّنة برخصة Apache 2.0.",
       editHandle: "تغيير اليوزر",
       adminHandleHint: "متاح لحساب المطوّر فقط — غيّره متى شئت",
       saveHandle: "حفظ اليوزر",
@@ -322,11 +317,6 @@
       handleTaken: "That username is taken or too similar to another",
       handleCheckFail: "Could not verify the username. Try again.",
       handleNeed: "Enter a username and name",
-      ossTitle: "Open source libraries",
-      ossLead: "Third party notices",
-      ossIntro: "The following components are licensed within Ahdaf. Attribution is shown as their licenses require.",
-      ossApache: "Apache License 2.0",
-      ossApacheHint: "Several Android libraries are included under the Apache 2.0 license.",
       editHandle: "Change username",
       adminHandleHint: "Owner only — change it whenever you want",
       saveHandle: "Save username",
@@ -2177,38 +2167,7 @@
         </ul>
       </div>
     </div>
-    <div class="sheet-card glass">${moreRow("oss", t("ossTitle"), t("ossLead"))}</div>`;
-  }
-  function renderOss() {
-    setTitle(t("ossTitle"), t("about"));
-    const libs = [
-      ["Capacitor", "Ionic", "MIT"],
-      ["@capacitor/android", "Ionic", "MIT"],
-      ["@capacitor/app", "Ionic", "MIT"],
-      ["@capacitor/browser", "Ionic", "MIT"],
-      ["@capacitor/core", "Ionic", "MIT"],
-      ["Capacitor Google Auth", "Codetrix Studio", "MIT"],
-      ["Express", "OpenJS Foundation", "MIT"],
-      ["IBM Plex Sans Arabic", "IBM", "SIL OFL 1.1"],
-      ["Android Open Source Project", "The Android Open Source Project", "Apache 2.0"],
-      ["AndroidX / Android Jetpack", "Google LLC", "Apache 2.0"],
-      ["OkHttp", "Square, Inc.", "Apache 2.0"],
-      ["Okio", "Square, Inc.", "Apache 2.0"],
-      ["Kotlin", "JetBrains s.r.o.", "Apache 2.0"],
-      ["Guava", "The Guava Authors", "Apache 2.0"],
-      ["Apache HTTP", "The Apache Software Foundation", "Apache 2.0"],
-    ];
-    $("#view").innerHTML = `<div class="sheet-card glass about-card oss-card">
-      <div class="about">
-        <b>${t("ossLead")}</b>
-        <p>${t("ossIntro")}</p>
-        <b>${t("ossApache")}</b>
-        <p>${t("ossApacheHint")}</p>
-      </div>
-      <ul class="oss-list">
-        ${libs.map(([n, c, l]) => `<li><strong>${esc(n)}</strong><span>${esc(c)}</span><em>${esc(l)}</em></li>`).join("")}
-      </ul>
-    </div>`;
+`;
   }
   function renderSupport() {
     setTitle(t("support"), t("app"));
@@ -2262,7 +2221,6 @@
     else if (page.type === "make-user") renderMakeUser();
     else if (page.type === "verify-me") renderVerifyMe();
     else if (page.type === "about") renderAbout();
-    else if (page.type === "oss") renderOss();
     else if (page.type === "support") renderSupport();
   }
 
