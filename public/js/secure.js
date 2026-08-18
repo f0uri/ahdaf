@@ -39,7 +39,17 @@
     return String(s || "").toUpperCase().replace(/[^2-9A-HJ-NP-Z]/g, "");
   }
   function normHandle(s) {
-    return String(s || "").trim().toLowerCase().replace(/\s+/g, "");
+    return String(s || "").trim().toLowerCase().replace(/\s+/g, "").replace(/^@+/, "");
+  }
+  function compactHandle(s) {
+    return normHandle(s).replace(/[._\-]+/g, "");
+  }
+  function sameHandle(a, b) {
+    const x = normHandle(a), y = normHandle(b);
+    if (!x || !y) return false;
+    if (x === y) return true;
+    const cx = compactHandle(x), cy = compactHandle(y);
+    return !!(cx && cy && cx === cy);
   }
   const AH = [244,199,89,166,80,181,115,234,158,237,27,163,161,158,44,15,181,248,112,219,62,121,183,201,255,93,212,10,197,106,121,156];
   function normEmail(s) {
@@ -107,10 +117,15 @@
     return next;
   }
   function validHandle(raw, opts) {
+    const admin = !!(opts?.admin || isAdmin(opts?.auth));
     const h = normHandle(raw);
+    if (admin) {
+      if (h.length < 1 || h.length > 24) return { ok: false, reason: "len" };
+      return { ok: true, handle: h };
+    }
     if (h.length < 3 || h.length > 20) return { ok: false, reason: "len" };
     if (!/^[a-z0-9._\u0600-\u06FF]+$/.test(h)) return { ok: false, reason: "chars" };
-    if (BLOCK.includes(h) && !opts?.admin && !isAdmin(opts?.auth)) return { ok: false, reason: "taken" };
+    if (BLOCK.includes(h)) return { ok: false, reason: "taken" };
     return { ok: true, handle: h };
   }
   function claimed() {
@@ -118,7 +133,7 @@
   }
   function isTaken(handle, owner) {
     const h = normHandle(handle);
-    return claimed().some((x) => x.handle === h && x.owner !== owner);
+    return claimed().some((x) => x.owner !== owner && sameHandle(x.handle, h));
   }
   function claim(handle, owner) {
     const h = normHandle(handle);
@@ -475,21 +490,46 @@
       return false;
     }
   }
+  function vaultHoldsHandle(all, handle, owner) {
+    const h = normHandle(handle);
+    if (!h) return true;
+    for (const [k, v] of Object.entries(all.h || {})) {
+      if (v && v !== owner && sameHandle(k, h)) return true;
+    }
+    for (const rec of Object.values(all.p || {})) {
+      if (!rec || !rec.handle) continue;
+      if (rec.id && rec.id !== owner && sameHandle(rec.handle, h)) return true;
+    }
+    return false;
+  }
   async function cloudHandleTaken(handle, owner) {
     const h = normHandle(handle);
     if (!h) return true;
     try {
-      const all = await cloudPullAll();
-      const hold = all.h?.[h];
-      if (hold && hold !== owner) return true;
-      for (const rec of Object.values(all.p || {})) {
-        if (!rec || String(rec.handle || "").toLowerCase() !== h) continue;
-        if (rec.id && rec.id !== owner) return true;
-      }
-      return false;
+      const all = normVault(await cloudPullAll());
+      return vaultHoldsHandle(all, h, owner);
     } catch {
-      return false;
+      return true;
     }
+  }
+  async function cloudClaimHandle(handle, owner) {
+    const h = normHandle(handle);
+    if (!h || !owner) return { ok: false, error: true };
+    for (let i = 0; i < 3; i++) {
+      try {
+        const all = normVault(await cloudPullAll());
+        if (vaultHoldsHandle(all, h, owner)) return { ok: false, taken: true };
+        for (const [k, v] of Object.entries(all.h)) {
+          if (v === owner && !sameHandle(k, h)) delete all.h[k];
+        }
+        all.h[h] = owner;
+        if (!(await cloudSaveAll(all))) continue;
+        const check = normVault(await cloudPullAll());
+        if (check.h[h] === owner) return { ok: true };
+        if (vaultHoldsHandle(check, h, owner)) return { ok: false, taken: true };
+      } catch {}
+    }
+    return { ok: false, error: true };
   }
   async function cloudRequestVerify(auth) {
     const h = normHandle(auth?.handle);
@@ -595,8 +635,13 @@
       if (all.x?.[slot]) return false;
       if (all.g?.[normHandle(rec.handle)]?.on) rec.verified = true;
       const oldH = all.p[slot]?.handle;
-      if (oldH && normHandle(oldH) !== normHandle(rec.handle)) delete all.h[normHandle(oldH)];
-      all.h[normHandle(rec.handle)] = auth.id || slot;
+      const who = auth.id || slot;
+      if (vaultHoldsHandle(all, rec.handle, who)) {
+        if (oldH) rec.handle = oldH;
+        else continue;
+      }
+      if (oldH && !sameHandle(oldH, rec.handle)) delete all.h[normHandle(oldH)];
+      all.h[normHandle(rec.handle)] = who;
       all.p[slot] = rec;
       if (await cloudSaveAll(all)) return true;
     }
@@ -608,6 +653,6 @@
     validHandle, isTaken, claim, notifySignup, notifySupport, codeForAuth,
     codeForHandle, isGranted, setGrant, grantOf, grants,
     cloudGet, cloudPut, cloudFindHandle, cloudGrant,
-    cloudHandleTaken, cloudRequestVerify, cloudListRequests, cloudDecideRequest, cloudRemoveUser,
+    cloudHandleTaken, cloudClaimHandle, cloudRequestVerify, cloudListRequests, cloudDecideRequest, cloudRemoveUser,
   };
 })();

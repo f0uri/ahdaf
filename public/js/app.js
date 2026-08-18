@@ -77,7 +77,7 @@
       followTeam: "متابعة",
       followingTeam: "متابَع",
       about: "حول أهداف",
-      aboutBody: "أهداف تطبيق عربي لنتائج كرة القدم: مباشر، مواعيد، ترتيب، تشكيلات وأحداث. تتابع فرقك ودورياتك فقط، مع الوديات، بتوقيت المغرب وتصميم هادئ.",
+      aboutBody: "أهداف تطبيق عربي لنتائج كرة القدم: مباشر، مواعيد، ترتيب، تشكيلات وأحداث. تتابع فرقك ودورياتك فقط، مع الوديات.",
       aboutFeat1: "نتائج ومباشر لكل الدوريات والكؤوس",
       aboutFeat2: "فرقي ودورياتي في الصفحة الرئيسية",
       aboutFeat3: "ترتيب، تشكيلات، إحصائيات وأحداث",
@@ -113,8 +113,14 @@
       nameLab: "الاسم",
       handleSave: "متابعة",
       handleBad: "يوزر من 3 إلى 20 حرفاً: حروف وأرقام ونقطة وشرطة سفلية",
-      handleTaken: "هذا اليوزر مستخدم",
+      handleTaken: "هذا اليوزر مستخدم أو مشابه ليوزر آخر",
+      handleCheckFail: "تعذّر التحقق من اليوزر. أعد المحاولة.",
       handleNeed: "أدخل اليوزر والاسم",
+      ossTitle: "مكتبات مفتوحة المصدر",
+      ossLead: "إشعارات الطرف الثالث",
+      ossIntro: "المكوّنات التالية مرخّصة ضمن تطبيق أهداف. نعرض نسبتها كما تقتضي رخصها.",
+      ossApache: "رخصة أباتشي 2.0",
+      ossApacheHint: "عدد من مكتبات أندرويد مضمّنة برخصة Apache 2.0.",
       editHandle: "تغيير اليوزر",
       adminHandleHint: "متاح لحساب المطوّر فقط — غيّره متى شئت",
       saveHandle: "حفظ اليوزر",
@@ -278,7 +284,7 @@
       followTeam: "Follow",
       followingTeam: "Following",
       about: "About Ahdaf",
-      aboutBody: "Ahdaf is an Arabic football scores app: live, fixtures, tables, line-ups and events. Follow only your teams and leagues, plus friendlies, on Morocco time.",
+      aboutBody: "Ahdaf is an Arabic football scores app: live, fixtures, tables, line-ups and events. Follow only your teams and leagues, plus friendlies.",
       aboutFeat1: "Live scores for leagues and cups",
       aboutFeat2: "My teams and leagues on the home screen",
       aboutFeat3: "Tables, line-ups, stats and events",
@@ -313,8 +319,14 @@
       nameLab: "Name",
       handleSave: "Continue",
       handleBad: "3–20 characters: letters, numbers, dot or underscore",
-      handleTaken: "That username is taken",
+      handleTaken: "That username is taken or too similar to another",
+      handleCheckFail: "Could not verify the username. Try again.",
       handleNeed: "Enter a username and name",
+      ossTitle: "Open source libraries",
+      ossLead: "Third party notices",
+      ossIntro: "The following components are licensed within Ahdaf. Attribution is shown as their licenses require.",
+      ossApache: "Apache License 2.0",
+      ossApacheHint: "Several Android libraries are included under the Apache 2.0 license.",
       editHandle: "Change username",
       adminHandleHint: "Owner only — change it whenever you want",
       saveHandle: "Save username",
@@ -2084,7 +2096,7 @@
       <p class="verify-lead">${t("adminHandleHint")}</p>
       <div class="verify-field">
         <span class="field-lab">${t("handleLab")}</span>
-        <input id="editHandleInput" type="text" maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(state.auth.handle || "")}" />
+        <input id="editHandleInput" type="text" maxlength="24" autocomplete="off" autocapitalize="off" spellcheck="false" value="${esc(state.auth.handle || "")}" />
         <p class="field-err hidden" id="editHandleErr"></p>
         <button class="verify-go" id="saveHandleBtn" style="margin-top:8px">${t("saveHandle")}</button>
       </div>
@@ -2164,6 +2176,38 @@
           <li>${t("aboutFeat3")}</li>
         </ul>
       </div>
+    </div>
+    <div class="sheet-card glass">${moreRow("oss", t("ossTitle"), t("ossLead"))}</div>`;
+  }
+  function renderOss() {
+    setTitle(t("ossTitle"), t("about"));
+    const libs = [
+      ["Capacitor", "Ionic", "MIT"],
+      ["@capacitor/android", "Ionic", "MIT"],
+      ["@capacitor/app", "Ionic", "MIT"],
+      ["@capacitor/browser", "Ionic", "MIT"],
+      ["@capacitor/core", "Ionic", "MIT"],
+      ["Capacitor Google Auth", "Codetrix Studio", "MIT"],
+      ["Express", "OpenJS Foundation", "MIT"],
+      ["IBM Plex Sans Arabic", "IBM", "SIL OFL 1.1"],
+      ["Android Open Source Project", "The Android Open Source Project", "Apache 2.0"],
+      ["AndroidX / Android Jetpack", "Google LLC", "Apache 2.0"],
+      ["OkHttp", "Square, Inc.", "Apache 2.0"],
+      ["Okio", "Square, Inc.", "Apache 2.0"],
+      ["Kotlin", "JetBrains s.r.o.", "Apache 2.0"],
+      ["Guava", "The Guava Authors", "Apache 2.0"],
+      ["Apache HTTP", "The Apache Software Foundation", "Apache 2.0"],
+    ];
+    $("#view").innerHTML = `<div class="sheet-card glass about-card oss-card">
+      <div class="about">
+        <b>${t("ossLead")}</b>
+        <p>${t("ossIntro")}</p>
+        <b>${t("ossApache")}</b>
+        <p>${t("ossApacheHint")}</p>
+      </div>
+      <ul class="oss-list">
+        ${libs.map(([n, c, l]) => `<li><strong>${esc(n)}</strong><span>${esc(c)}</span><em>${esc(l)}</em></li>`).join("")}
+      </ul>
     </div>`;
   }
   function renderSupport() {
@@ -2218,6 +2262,7 @@
     else if (page.type === "make-user") renderMakeUser();
     else if (page.type === "verify-me") renderVerifyMe();
     else if (page.type === "about") renderAbout();
+    else if (page.type === "oss") renderOss();
     else if (page.type === "support") renderSupport();
   }
 
@@ -2516,6 +2561,7 @@
     setTimeout(() => $("#handleUser")?.focus(), 80);
   }
   async function finishProfile() {
+    if (finishProfile.busy) return false;
     const parsed = window.AhdafSecure?.validHandle?.($("#handleUser")?.value, { admin: isOwner(), auth: state.auth });
     const name = String($("#handleName")?.value || "").trim().replace(/\s+/g, " ").slice(0, 24);
     const box = $("#handleErr");
@@ -2524,24 +2570,34 @@
     if (!name || name.length < 2) { show(t("handleNeed")); return false; }
     const owner = state.auth?.id || ("u:" + parsed.handle);
     if (window.AhdafSecure?.isTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return false; }
+    finishProfile.busy = true;
     try {
-      if (await window.AhdafSecure?.cloudHandleTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return false; }
-    } catch {}
-    if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return false; }
-    const next = {
-      ...(state.auth || {}),
-      id: state.auth?.id || ("u:" + parsed.handle),
-      handle: parsed.handle,
-      name,
-      mode: state.auth?.mode || "user",
-    };
-    await persistAuth(next);
-    writeVault(next);
-    try { await window.AhdafSecure?.cloudPut?.(next, snapshot()); } catch {}
-    $("#handleLayer")?.classList.add("hidden");
-    window.AhdafSecure?.notifySignup?.(next);
-    enterHome();
-    return true;
+      const claim = window.AhdafSecure?.cloudClaimHandle
+        ? await window.AhdafSecure.cloudClaimHandle(parsed.handle, owner)
+        : { ok: false, error: true };
+      if (claim?.taken) { show(t("handleTaken")); return false; }
+      if (!claim?.ok) { show(t("handleCheckFail")); return false; }
+      if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return false; }
+      const next = {
+        ...(state.auth || {}),
+        id: state.auth?.id || ("u:" + parsed.handle),
+        handle: parsed.handle,
+        name,
+        mode: state.auth?.mode || "user",
+      };
+      await persistAuth(next);
+      writeVault(next);
+      try { await window.AhdafSecure?.cloudPut?.(next, snapshot()); } catch {}
+      $("#handleLayer")?.classList.add("hidden");
+      window.AhdafSecure?.notifySignup?.(next);
+      enterHome();
+      return true;
+    } catch {
+      show(t("handleCheckFail"));
+      return false;
+    } finally {
+      finishProfile.busy = false;
+    }
   }
   async function enterWithGoogle(opts) {
     tap();
@@ -2866,16 +2922,19 @@
         if (!parsed?.ok) { show(t("handleBad")); return; }
         const owner = state.auth?.id || ("u:" + parsed.handle);
         if (window.AhdafSecure?.isTaken?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
-        (window.AhdafSecure?.cloudHandleTaken?.(parsed.handle, owner) || Promise.resolve(false)).then((taken) => {
-          if (taken) { show(t("handleTaken")); return; }
-          if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); return; }
+        const btn = $("#saveHandleBtn");
+        if (btn) btn.disabled = true;
+        (window.AhdafSecure?.cloudClaimHandle?.(parsed.handle, owner) || Promise.resolve({ ok: false, error: true })).then((claim) => {
+          if (claim?.taken) { show(t("handleTaken")); if (btn) btn.disabled = false; return; }
+          if (!claim?.ok) { show(t("handleCheckFail")); if (btn) btn.disabled = false; return; }
+          if (!window.AhdafSecure?.claim?.(parsed.handle, owner)) { show(t("handleTaken")); if (btn) btn.disabled = false; return; }
           persistAuth({ ...state.auth, handle: parsed.handle }).then(() => {
-          cloudPushSoon();
-          applyChrome();
-          renderPage();
-          flash(t("handleSaved"));
-        });
-        }).catch(() => flash(t("error")));
+            cloudPushSoon();
+            applyChrome();
+            renderPage();
+            flash(t("handleSaved"));
+          });
+        }).catch(() => { flash(t("handleCheckFail")); if (btn) btn.disabled = false; });
         return;
       }
       const badgeBtn = e.target.closest(".badge-dot");
